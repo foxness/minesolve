@@ -13,6 +13,7 @@ class GameScene: SKScene {
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
     let localCamera = SKCameraNode()
+    var game = Game()
     
     override func didMove(to view: SKView) {
         
@@ -41,6 +42,8 @@ class GameScene: SKScene {
 //        addChild(localCamera)
 //        self.camera = localCamera
         
+        game.generateMines()
+        
         drawField()
         drawCenter()
         print("lmao2")
@@ -61,6 +64,11 @@ class GameScene: SKScene {
         for y in 0..<fieldHeight {
             for x in 0..<fieldWidth {
                 let newSquare = square.copy() as! SKShapeNode
+                
+                if game.board[y][x] == .mine {
+                    newSquare.fillColor = .red
+                }
+                
                 newSquare.position = CGPoint(
                     x: CGFloat(x) * squareSize,
                     y: CGFloat(y) * -squareSize
