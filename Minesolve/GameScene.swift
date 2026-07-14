@@ -13,6 +13,10 @@ class GameScene: SKScene {
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
     
+    override func sceneDidLoad() {
+        print("lmao")
+    }
+    
     override func didMove(to view: SKView) {
         
         // Get label node from scene and store it for use later
