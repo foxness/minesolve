@@ -76,8 +76,3 @@ struct Game {
     }
 }
 
-enum Cell: Equatable {
-    case empty
-    case mine
-    case number(Int)
-}
