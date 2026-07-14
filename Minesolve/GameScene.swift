@@ -12,10 +12,7 @@ class GameScene: SKScene {
     
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
-    
-    override func sceneDidLoad() {
-        print("lmao")
-    }
+    let localCamera = SKCameraNode()
     
     override func didMove(to view: SKView) {
         
@@ -38,8 +35,48 @@ class GameScene: SKScene {
                                               SKAction.fadeOut(withDuration: 0.5),
                                               SKAction.removeFromParent()]))
         }
+        
+//        localCamera.yScale = -1
+//        localCamera.position = CGPoint(x: size.width/2, y: size.height/2)
+//        addChild(localCamera)
+//        self.camera = localCamera
+        
+        drawField()
+        drawCenter()
+        print("lmao2")
     }
     
+    func drawField() {
+        let fieldWidth = 10
+        let fieldHeight = 10
+        let squareSize: CGFloat = 30
+        let origin = CGPoint(
+            x: -CGFloat(fieldWidth) * squareSize / 2 + squareSize / 2,
+            y: CGFloat(fieldHeight) * squareSize / 2 - squareSize / 2
+        )
+        
+        let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
+        square.fillColor = .blue
+        
+        for y in 0..<fieldHeight {
+            for x in 0..<fieldWidth {
+                let newSquare = square.copy() as! SKShapeNode
+                newSquare.position = CGPoint(
+                    x: CGFloat(x) * squareSize,
+                    y: CGFloat(y) * -squareSize
+                )
+                
+                newSquare.position = origin + newSquare.position
+                addChild(newSquare)
+            }
+        }
+    }
+    
+    func drawCenter() {
+        let center = SKShapeNode(rectOf: .init(width: 5, height: 5))
+        center.position = .zero
+        addChild(center)
+    }
     
     func touchDown(atPoint pos : CGPoint) {
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
@@ -91,5 +128,16 @@ class GameScene: SKScene {
     
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
+    }
+}
+
+extension CGPoint {
+    
+    static func +(lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+        return CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+    }
+    
+    static func +=(lhs: inout CGPoint, rhs: CGPoint) {
+        lhs = lhs + rhs
     }
 }
