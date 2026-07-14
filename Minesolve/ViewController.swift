@@ -32,5 +32,23 @@ class ViewController: NSViewController {
             view.showsNodeCount = true
         }
     }
+    
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        
+        view.window?.trueCenter()
+    }
 }
 
+extension NSWindow {
+    
+    func trueCenter() {
+        guard let targetScreen = self.screen ?? NSScreen.main else { return }
+        let screenRect = targetScreen.visibleFrame
+        
+        let xPos = screenRect.origin.x + (screenRect.width - self.frame.width) / 2
+        let yPos = screenRect.origin.y + (screenRect.height - self.frame.height) / 2
+        
+        self.setFrameOrigin(NSPoint(x: xPos, y: yPos))
+    }
+}
