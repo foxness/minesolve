@@ -10,6 +10,10 @@ import GameplayKit
 
 class GameScene: SKScene {
     
+    let fieldWidth = 10
+    let fieldHeight = 10
+    let squareSize: CGFloat = 50
+
 //    private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
     let localCamera = SKCameraNode()
@@ -48,15 +52,15 @@ class GameScene: SKScene {
         drawCenter()
     }
     
-    func drawField() {
-        let fieldWidth = 10
-        let fieldHeight = 10
-        let squareSize: CGFloat = 50
-        let origin = CGPoint(
+    func getOrigin() -> CGPoint {
+        return CGPoint(
             x: -CGFloat(fieldWidth) * squareSize / 2 + squareSize / 2,
             y: CGFloat(fieldHeight) * squareSize / 2 - squareSize / 2
         )
-        
+    }
+    
+    func drawField() {
+        let origin = getOrigin()
         let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
         square.fillColor = .blue
         
@@ -98,15 +102,23 @@ class GameScene: SKScene {
         addChild(center)
     }
     
-    func touchDown(atPoint pos : CGPoint) {
+    func touchDown(atPoint pos: CGPoint) {
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.green
             self.addChild(n)
         }
+        
+        let origin = getOrigin()
+        let resultX = Int(round((pos.x - origin.x) / squareSize))
+        let resultY = Int(round((-pos.y + origin.y) / squareSize))
+        
+        if game.isInBoard(x: resultX, y: resultY) {
+            game.reveal(x: resultX, y: resultY)
+        }
     }
     
-    func touchMoved(toPoint pos : CGPoint) {
+    func touchMoved(toPoint pos: CGPoint) {
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.blue
@@ -114,7 +126,7 @@ class GameScene: SKScene {
         }
     }
     
-    func touchUp(atPoint pos : CGPoint) {
+    func touchUp(atPoint pos: CGPoint) {
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.red

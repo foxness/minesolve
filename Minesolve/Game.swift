@@ -63,7 +63,7 @@ struct Game {
                     let nx = x + offset.0
                     let ny = y + offset.1
                     
-                    if nx >= 0, nx < width, ny >= 0, ny < height, board[ny][nx] == .mine {
+                    if isInBoard(x: nx, y: ny), board[ny][nx] == .mine {
                         mineCount += 1
                     }
                 }
@@ -73,6 +73,26 @@ struct Game {
                 }
             }
         }
+    }
+    
+    mutating func reveal(x: Int, y: Int) {
+        var revealString = "Reveal (\(x), \(y)) = "
+       
+        let cell = board[y][x]
+        switch cell {
+        case .empty:
+            revealString.append("empty")
+        case .number(let n):
+            revealString.append("number \(n)")
+        case .mine:
+            revealString.append("mine")
+        }
+        
+        print(revealString)
+    }
+    
+    func isInBoard(x: Int, y: Int) -> Bool {
+        return x >= 0 && x < width && y >= 0 && y < height
     }
 }
 
