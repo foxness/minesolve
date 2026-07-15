@@ -9,8 +9,8 @@ struct Game {
     
     // MARK: - Constants
     
-    let width = 10
-    let height = 10
+    let width = 9
+    let height = 9
     let mines = 10
     
     // MARK: - Properties
@@ -130,7 +130,6 @@ struct Game {
         var currentWave = [(x, y)]
         
         while !currentWave.isEmpty {
-            print("currentWave: \(currentWave)")
             visited += currentWave
             
             var newWave = [(Int, Int)]()
@@ -159,8 +158,8 @@ struct Game {
             currentWave = newWave
         }
         
-        for point in visited {
-            boardState[point.1][point.0] = .revealed
+        for (px, py) in visited {
+            boardState[py][px] = .revealed
         }
     }
     

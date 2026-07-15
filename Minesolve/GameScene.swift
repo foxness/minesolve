@@ -10,9 +10,8 @@ import GameplayKit
 
 class GameScene: SKScene {
     
-    let fieldWidth = 10
-    let fieldHeight = 10
     let squareSize: CGFloat = 50
+    let fontRatio: CGFloat = 28 / 50
 
 //    private var label : SKLabelNode?
     private var spinnyNode: SKShapeNode?
@@ -54,16 +53,16 @@ class GameScene: SKScene {
     
     func getOrigin() -> CGPoint {
         .init(
-            x: -CGFloat(fieldWidth) * squareSize / 2 + squareSize / 2,
-            y: CGFloat(fieldHeight) * squareSize / 2 - squareSize / 2
+            x: -CGFloat(game.width) * squareSize / 2 + squareSize / 2,
+            y: CGFloat(game.height) * squareSize / 2 - squareSize / 2
         )
     }
     
     func drawBoard() {
         boardNode?.removeFromParent()
         
-        let boardWidth = CGFloat(fieldWidth) * squareSize
-        let boardHeight = CGFloat(fieldHeight) * squareSize
+        let boardWidth = CGFloat(game.width) * squareSize
+        let boardHeight = CGFloat(game.height) * squareSize
         boardNode = SKShapeNode(rectOf: .init(width: boardWidth, height: boardHeight))
         guard let boardNode else { return }
         
@@ -71,8 +70,8 @@ class GameScene: SKScene {
         let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
         square.fillColor = .blue
         
-        for y in 0..<fieldHeight {
-            for x in 0..<fieldWidth {
+        for y in 0..<game.height {
+            for x in 0..<game.width {
                 let newSquare = square.copy() as! SKShapeNode
                 
                 newSquare.position = CGPoint(
@@ -91,7 +90,7 @@ class GameScene: SKScene {
                     case .number(let n):
                         let label = SKLabelNode(text: "\(n)")
                         label.fontName = "Monaco"
-                        label.fontSize = 28
+                        label.fontSize = squareSize * fontRatio
                         label.horizontalAlignmentMode = .center
                         label.verticalAlignmentMode = .center
                         
