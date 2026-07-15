@@ -18,6 +18,7 @@ struct Game {
     var board: [[Cell]]
     var boardState: [[CellState]]
     var isGenerated = false
+    var state: GameState = .ongoing
     
     // MARK: - Init
 
@@ -34,6 +35,8 @@ struct Game {
     // MARK: - Public methods
     
     mutating func newGame() {
+        state = .ongoing
+        
         for y in 0..<height {
             for x in 0..<width {
                 board[y][x] = .empty
@@ -45,6 +48,7 @@ struct Game {
     }
     
     mutating func reveal(x: Int, y: Int) {
+        guard case .ongoing = state else { return }
         guard isValidPoint(x: x, y: y) else { return }
         guard boardState[y][x] == .unrevealed else { return }
         
@@ -65,12 +69,16 @@ struct Game {
         case .mine:
             revealString.append("mine")
             boardState[y][x] = .revealed
+            state = .loss
+            print("You lose!")
         }
         
         print(revealString)
+        checkForWin()
     }
     
     mutating func flag(x: Int, y: Int) {
+        guard case .ongoing = state else { return }
         guard isValidPoint(x: x, y: y) else { return }
 
         switch boardState[y][x] {
@@ -84,6 +92,7 @@ struct Game {
     }
     
     mutating func revealMany(x: Int, y: Int) {
+        guard case .ongoing = state else { return }
         guard isValidPoint(x: x, y: y) else { return }
         guard boardState[y][x] == .revealed else { return }
         guard case .number(let n) = board[y][x] else { return }
@@ -184,6 +193,24 @@ struct Game {
         
         for (px, py) in visited {
             boardState[py][px] = .revealed
+        }
+    }
+    
+    private mutating func checkForWin() {
+        guard case .ongoing = state else { return }
+        
+        var unrevealedCount = 0
+        for y in 0..<height {
+            for x in 0..<width {
+                if boardState[y][x] != .revealed {
+                    unrevealedCount += 1
+                }
+            }
+        }
+        
+        if unrevealedCount == mines {
+            state = .win
+            print("You win!")
         }
     }
     

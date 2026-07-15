@@ -16,7 +16,8 @@ class GameScene: SKScene {
 //    private var label : SKLabelNode?
     private var spinnyNode: SKShapeNode?
     private var boardNode: SKShapeNode? = nil
-    
+    private var stateNode: SKLabelNode? = nil
+
     private var isGameOver = false
     private var leftMouseDown = false
     private var rightMouseDown = false
@@ -51,7 +52,7 @@ class GameScene: SKScene {
 //        addChild(localCamera)
 //        self.camera = localCamera
         
-        drawBoard()
+        drawGame()
         drawCenter()
     }
     
@@ -60,6 +61,11 @@ class GameScene: SKScene {
             x: -CGFloat(game.width) * squareSize / 2 + squareSize / 2,
             y: CGFloat(game.height) * squareSize / 2 - squareSize / 2
         )
+    }
+    
+    func drawGame() {
+        drawBoard()
+        drawState()
     }
     
     func drawBoard() {
@@ -113,6 +119,39 @@ class GameScene: SKScene {
         }
         
         addChild(boardNode)
+    }
+    
+    func drawState() {
+        let text: String
+        switch game.state {
+        case .ongoing: text = "Ongoing"
+        case .loss: text = "Loss"
+        case .win: text = "Win"
+        }
+        
+        if stateNode == nil {
+            let newLabel = SKLabelNode(text: text)
+            newLabel.fontName = "Monaco"
+            newLabel.fontSize = 50
+            newLabel.horizontalAlignmentMode = .center
+            newLabel.verticalAlignmentMode = .center
+            
+            let boardHeight = CGFloat(game.height) * squareSize
+            
+            let margin = squareSize
+            let x: CGFloat = 0
+            let y = boardHeight / 2 + margin
+            
+            newLabel.position = CGPoint(x: x, y: y)
+
+            self.stateNode = newLabel
+            addChild(newLabel)
+        }
+        
+        guard let stateNode else { return }
+        
+        stateNode.text = text
+        stateNode.isHidden = game.state == .ongoing
     }
     
     func drawCenter() {
@@ -170,7 +209,7 @@ class GameScene: SKScene {
             game.reveal(x: resultX, y: resultY)
         }
         
-        drawBoard()
+        drawGame()
     }
     
     override func mouseDown(with event: NSEvent) {
@@ -199,7 +238,7 @@ class GameScene: SKScene {
         switch event.keyCode {
         case 15:
             game.newGame()
-            drawBoard()
+            drawGame()
         case 0x31:
             break
 //            if let label = self.label {
