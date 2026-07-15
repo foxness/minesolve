@@ -35,6 +35,7 @@ struct Game {
     mutating func initialize() {
         generateMines()
         fillNumbers()
+        print("New game initialized.")
     }
 
     mutating func reveal(x: Int, y: Int) {

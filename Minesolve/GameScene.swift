@@ -162,7 +162,12 @@ class GameScene: SKScene {
     }
     
     override func keyDown(with event: NSEvent) {
+        if event.isARepeat { return }
+        
         switch event.keyCode {
+        case 0x0:
+            game.initialize()
+            drawBoard()
         case 0x31:
             break
 //            if let label = self.label {
