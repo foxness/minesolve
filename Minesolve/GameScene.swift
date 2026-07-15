@@ -235,8 +235,11 @@ class GameScene: SKScene {
         if event.isARepeat { return }
         
         switch event.keyCode {
-        case 15:
+        case 15: // R
             game.newGame()
+            drawGame()
+        case 17: // T
+            game.solve()
             drawGame()
         case 0x31:
             break

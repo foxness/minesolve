@@ -20,6 +20,8 @@ struct Game {
     private var isGenerated = false
     var state: GameState = .ongoing
     
+    private let solver: Solver
+
     // MARK: - Init
 
     init() {
@@ -30,6 +32,8 @@ struct Game {
             board.append(Array(repeating: .empty, count: width))
             boardState.append(Array(repeating: .unrevealed, count: width))
         }
+        
+        solver = Solver(width: width, height: height)
     }
     
     // MARK: - Public methods
@@ -107,6 +111,17 @@ struct Game {
         }
         
         print("RevealMany (\(x), \(y))")
+    }
+    
+    mutating func solve() {
+        let rendered = render()
+        let result = solver.solve(board: rendered)
+        
+        for point in result.pointsToReveal {
+            reveal(x: point.x, y: point.y)
+        }
+        
+        print("Solved!")
     }
     
     func render() -> [[RenderedCell]] {
