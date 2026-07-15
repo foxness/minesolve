@@ -15,7 +15,9 @@ class GameScene: SKScene {
     let squareSize: CGFloat = 50
 
 //    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
+    private var spinnyNode: SKShapeNode?
+    private var boardNode: SKShapeNode? = nil
+    
     let localCamera = SKCameraNode()
     var game = Game()
     
@@ -48,18 +50,25 @@ class GameScene: SKScene {
         
         game.initialize()
         
-        drawField()
+        drawBoard()
         drawCenter()
     }
     
     func getOrigin() -> CGPoint {
-        return CGPoint(
+        .init(
             x: -CGFloat(fieldWidth) * squareSize / 2 + squareSize / 2,
             y: CGFloat(fieldHeight) * squareSize / 2 - squareSize / 2
         )
     }
     
-    func drawField() {
+    func drawBoard() {
+        boardNode?.removeFromParent()
+        
+        let boardWidth = CGFloat(fieldWidth) * squareSize
+        let boardHeight = CGFloat(fieldHeight) * squareSize
+        boardNode = SKShapeNode(rectOf: .init(width: boardWidth, height: boardHeight))
+        guard let boardNode else { return }
+        
         let origin = getOrigin()
         let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
         square.fillColor = .blue
@@ -76,24 +85,31 @@ class GameScene: SKScene {
                 newSquare.position = origin + newSquare.position
                 
                 let cell = game.board[y][x]
+                let cellState = game.boardState[y][x]
                 
-                switch cell {
-                case .empty: break
-                case .number(let n):
-                    let label = SKLabelNode(text: "\(n)")
-                    label.fontName = "Monaco"
-                    label.fontSize = 28
-                    label.horizontalAlignmentMode = .center
-                    label.verticalAlignmentMode = .center
-                    
-                    newSquare.addChild(label)
-                case .mine:
-                    newSquare.fillColor = .red
+                if cellState == .revealed {
+                    switch cell {
+                    case .empty: break
+                    case .number(let n):
+                        let label = SKLabelNode(text: "\(n)")
+                        label.fontName = "Monaco"
+                        label.fontSize = 28
+                        label.horizontalAlignmentMode = .center
+                        label.verticalAlignmentMode = .center
+                        
+                        newSquare.addChild(label)
+                    case .mine:
+                        newSquare.fillColor = .red
+                    }
+                } else {
+                    newSquare.fillColor = .gray
                 }
                 
-                addChild(newSquare)
+                boardNode.addChild(newSquare)
             }
         }
+        
+        addChild(boardNode)
     }
     
     func drawCenter() {
@@ -113,9 +129,8 @@ class GameScene: SKScene {
         let resultX = Int(round((pos.x - origin.x) / squareSize))
         let resultY = Int(round((-pos.y + origin.y) / squareSize))
         
-        if game.isInBoard(x: resultX, y: resultY) {
-            game.reveal(x: resultX, y: resultY)
-        }
+        game.reveal(x: resultX, y: resultY)
+        drawBoard()
     }
     
     func touchMoved(toPoint pos: CGPoint) {

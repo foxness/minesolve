@@ -7,27 +7,70 @@
 
 struct Game {
     
+    // MARK: - Constants
+    
     let width = 10
     let height = 10
     let mines = 10
     
-    var board: [[Cell]] = []
+    // MARK: - Properties
     
+    var board: [[Cell]]
+    var boardState: [[CellState]]
+    
+    // MARK: - Init
+
     init() {
+        board = []
+        boardState = []
+        
         for _ in 0..<height {
-            board.append(Array.init(repeating: .empty, count: width))
+            board.append(Array(repeating: .empty, count: width))
+            boardState.append(Array(repeating: .unrevealed, count: width))
         }
     }
+    
+    // MARK: - Public methods
     
     mutating func initialize() {
         generateMines()
         fillNumbers()
     }
+
+    mutating func reveal(x: Int, y: Int) {
+        if !isValidPoint(x: x, y: y) {
+            return
+        }
+        
+        if boardState[y][x] == .revealed {
+            return
+        }
+        
+        var revealString = "Reveal (\(x), \(y)) = "
+        
+        let cell = board[y][x]
+        switch cell {
+        case .empty:
+            revealString.append("empty")
+            revealEmpty(x: x, y: y)
+        case .number(let n):
+            revealString.append("number \(n)")
+            boardState[y][x] = .revealed
+        case .mine:
+            revealString.append("mine")
+            boardState[y][x] = .revealed
+        }
+        
+        print(revealString)
+    }
+
+    // MARK: - Private methods
     
-    mutating func generateMines() {
+    private mutating func generateMines() {
         for y in 0..<height {
             for x in 0..<width {
                 board[y][x] = .empty
+                boardState[y][x] = .unrevealed
             }
         }
         
@@ -45,13 +88,7 @@ struct Game {
         }
     }
     
-    mutating func fillNumbers() {
-        let adjacentOffsets: [(Int, Int)] = [
-            (-1, -1), (-1, 0), (-1, 1),
-            (0, -1),         (0, 1),
-            (1, -1), (1, 0), (1, 1),
-        ]
-        
+    private mutating func fillNumbers() {
         for y in 0..<height {
             for x in 0..<width {
                 if board[y][x] == .mine {
@@ -59,11 +96,11 @@ struct Game {
                 }
                 
                 var mineCount = 0
-                for offset in adjacentOffsets {
-                    let nx = x + offset.0
-                    let ny = y + offset.1
+                for neighbor in getValidNeighbors(x: x, y: y) {
+                    let nx = neighbor.0
+                    let ny = neighbor.1
                     
-                    if isInBoard(x: nx, y: ny), board[ny][nx] == .mine {
+                    if board[ny][nx] == .mine {
                         mineCount += 1
                     }
                 }
@@ -75,24 +112,65 @@ struct Game {
         }
     }
     
-    mutating func reveal(x: Int, y: Int) {
-        var revealString = "Reveal (\(x), \(y)) = "
-       
-        let cell = board[y][x]
-        switch cell {
-        case .empty:
-            revealString.append("empty")
-        case .number(let n):
-            revealString.append("number \(n)")
-        case .mine:
-            revealString.append("mine")
+    private mutating func revealEmpty(x: Int, y: Int) {
+        var visited = [(Int, Int)]()
+        var currentWave = [(x, y)]
+        
+        while !currentWave.isEmpty {
+            print("currentWave: \(currentWave)")
+            visited += currentWave
+            
+            var newWave = [(Int, Int)]()
+            for point in currentWave {
+                let (px, py) = point
+                
+                if board[py][px] != .empty {
+                    continue
+                }
+                
+                for neighbor in getValidNeighbors(x: px, y: py) {
+                    let (nx, ny) = neighbor
+                    
+                    if visited.contains(where: { $0 == (nx, ny) }) {
+                        continue
+                    }
+                    
+                    if newWave.contains(where: { $0 == (nx, ny) }) {
+                        continue
+                    }
+                    
+                    newWave += [(nx, ny)]
+                }
+            }
+            
+            currentWave = newWave
         }
         
-        print(revealString)
+        for point in visited {
+            boardState[point.1][point.0] = .revealed
+        }
     }
     
-    func isInBoard(x: Int, y: Int) -> Bool {
+    // MARK: - Helper
+    
+    private func isValidPoint(x: Int, y: Int) -> Bool {
         return x >= 0 && x < width && y >= 0 && y < height
+    }
+    
+    private func getValidNeighbors(x: Int, y: Int) -> [(Int, Int)] {
+        getAdjacentOffsets().compactMap { offset in
+            let nx = x + offset.0
+            let ny = y + offset.1
+            return isValidPoint(x: nx, y: ny) ? (nx, ny) : nil
+        }
+    }
+    
+    private func getAdjacentOffsets() -> [(Int, Int)] {
+        [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),         (0, 1),
+            (1, -1), (1, 0), (1, 1),
+        ]
     }
 }
 
