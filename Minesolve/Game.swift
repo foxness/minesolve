@@ -17,6 +17,7 @@ struct Game {
     
     var board: [[Cell]]
     var boardState: [[CellState]]
+    var isGenerated = false
     
     // MARK: - Init
 
@@ -32,15 +33,25 @@ struct Game {
     
     // MARK: - Public methods
     
-    mutating func initialize() {
-        generateMines()
-        fillNumbers()
-        print("New game initialized.")
+    mutating func newGame() {
+        for y in 0..<height {
+            for x in 0..<width {
+                board[y][x] = .empty
+                boardState[y][x] = .unrevealed
+            }
+        }
+        
+        isGenerated = false
     }
-
+    
     mutating func reveal(x: Int, y: Int) {
         if !isValidPoint(x: x, y: y) {
             return
+        }
+        
+        if !isGenerated {
+            generateNew(x: x, y: y)
+            isGenerated = true
         }
         
         if boardState[y][x] == .revealed {
@@ -67,20 +78,21 @@ struct Game {
 
     // MARK: - Private methods
     
-    private mutating func generateMines() {
-        for y in 0..<height {
-            for x in 0..<width {
-                board[y][x] = .empty
-                boardState[y][x] = .unrevealed
-            }
-        }
+    private mutating func generateNew(x: Int, y: Int) {
+        generateMines(initialX: x, initialY: y)
+        fillNumbers()
+        print("New game generated.")
+    }
+    
+    private mutating func generateMines(initialX: Int, initialY: Int) {
+        assert(!isGenerated)
         
         var placedMines = 0
         while placedMines < mines {
             let x = Int.random(in: 0..<width)
             let y = Int.random(in: 0..<height)
             
-            if board[y][x] == .mine {
+            if (x == initialX && y == initialY) || board[y][x] == .mine {
                 continue
             }
             

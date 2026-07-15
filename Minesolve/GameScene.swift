@@ -48,8 +48,6 @@ class GameScene: SKScene {
 //        addChild(localCamera)
 //        self.camera = localCamera
         
-        game.initialize()
-        
         drawBoard()
         drawCenter()
     }
@@ -166,7 +164,7 @@ class GameScene: SKScene {
         
         switch event.keyCode {
         case 0x0:
-            game.initialize()
+            game.newGame()
             drawBoard()
         case 0x31:
             break
