@@ -78,6 +78,7 @@ struct Game {
             boardState[point.y][point.x] = .revealed
             state = .loss
             print("You lose!")
+            revealAllMines()
         }
         
 //        print(revealString)
@@ -276,6 +277,16 @@ struct Game {
         if unrevealedCount == mines {
             state = .win
             print("You win!")
+        }
+    }
+    
+    private mutating func revealAllMines() {
+        for y in 0..<height {
+            for x in 0..<width {
+                if board[y][x] == .mine, boardState[y][x] != .flagged {
+                    boardState[y][x] = .revealed
+                }
+            }
         }
     }
 }

@@ -64,8 +64,6 @@ struct Solver {
         
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
-    
-    // MARK: - Helper
 }
 
 struct SolveResult {
