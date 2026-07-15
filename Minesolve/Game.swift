@@ -45,20 +45,15 @@ struct Game {
     }
     
     mutating func reveal(x: Int, y: Int) {
-        if !isValidPoint(x: x, y: y) { return }
-        if boardState[y][x] == .flagged { return }
+        guard isValidPoint(x: x, y: y) else { return }
+        guard boardState[y][x] == .unrevealed else { return }
         
         if !isGenerated {
             generateNew(x: x, y: y)
             isGenerated = true
         }
         
-        if boardState[y][x] == .revealed {
-            return
-        }
-        
         var revealString = "Reveal (\(x), \(y)) = "
-        
         let cell = board[y][x]
         switch cell {
         case .empty:
@@ -76,8 +71,8 @@ struct Game {
     }
     
     mutating func flag(x: Int, y: Int) {
-        if !isValidPoint(x: x, y: y) { return }
-        
+        guard isValidPoint(x: x, y: y) else { return }
+
         switch boardState[y][x] {
         case .unrevealed:
             boardState[y][x] = .flagged
@@ -86,6 +81,23 @@ struct Game {
         case .flagged:
             boardState[y][x] = .unrevealed
         }
+    }
+    
+    mutating func revealMany(x: Int, y: Int) {
+        guard isValidPoint(x: x, y: y) else { return }
+        guard boardState[y][x] == .revealed else { return }
+        guard case .number(let n) = board[y][x] else { return }
+        
+        let neighbors = getValidNeighbors(x: x, y: y)
+        let flaggedNeighborCount = neighbors.count(where: { boardState[$0.1][$0.0] == .flagged })
+        guard flaggedNeighborCount == n else { return }
+        
+        let unrevealedNeighbors = neighbors.filter { boardState[$1][$0] == .unrevealed }
+        for (nx, ny) in unrevealedNeighbors {
+            reveal(x: nx, y: ny)
+        }
+        
+        print("RevealMany (\(x), \(y))")
     }
 
     // MARK: - Private methods
@@ -178,7 +190,7 @@ struct Game {
     // MARK: - Helper
     
     private func isValidPoint(x: Int, y: Int) -> Bool {
-        return x >= 0 && x < width && y >= 0 && y < height
+        x >= 0 && x < width && y >= 0 && y < height
     }
     
     private func getValidNeighbors(x: Int, y: Int) -> [(Int, Int)] {

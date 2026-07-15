@@ -17,6 +17,10 @@ class GameScene: SKScene {
     private var spinnyNode: SKShapeNode?
     private var boardNode: SKShapeNode? = nil
     
+    private var isGameOver = false
+    private var leftMouseDown = false
+    private var rightMouseDown = false
+    
     let localCamera = SKCameraNode()
     var game = Game()
     
@@ -118,23 +122,17 @@ class GameScene: SKScene {
     }
     
     func touchDown(atPoint pos: CGPoint, right: Bool = false) {
+        if right {
+            rightMouseDown = true
+        } else {
+            leftMouseDown = true
+        }
+        
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.green
             self.addChild(n)
         }
-        
-        let origin = getOrigin()
-        let resultX = Int(round((pos.x - origin.x) / squareSize))
-        let resultY = Int(round((-pos.y + origin.y) / squareSize))
-        
-        if right {
-            game.flag(x: resultX, y: resultY)
-        } else {
-            game.reveal(x: resultX, y: resultY)
-        }
-        
-        drawBoard()
     }
     
     func touchMoved(toPoint pos: CGPoint) {
@@ -145,12 +143,34 @@ class GameScene: SKScene {
         }
     }
     
-    func touchUp(atPoint pos: CGPoint) {
+    func touchUp(atPoint pos: CGPoint, right: Bool = false) {
+        if right {
+            rightMouseDown = false
+        } else {
+            leftMouseDown = false
+        }
+        
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.red
             self.addChild(n)
         }
+        
+        let origin = getOrigin()
+        let resultX = Int(round((pos.x - origin.x) / squareSize))
+        let resultY = Int(round((-pos.y + origin.y) / squareSize))
+        
+        if right && leftMouseDown || !right && rightMouseDown {
+            leftMouseDown = false
+            rightMouseDown = false
+            game.revealMany(x: resultX, y: resultY)
+        } else if right {
+            game.flag(x: resultX, y: resultY)
+        } else {
+            game.reveal(x: resultX, y: resultY)
+        }
+        
+        drawBoard()
     }
     
     override func mouseDown(with event: NSEvent) {
@@ -167,6 +187,10 @@ class GameScene: SKScene {
     
     override func mouseUp(with event: NSEvent) {
         touchUp(atPoint: event.location(in: self))
+    }
+    
+    override func rightMouseUp(with event: NSEvent) {
+        touchUp(atPoint: event.location(in: self), right: true)
     }
     
     override func keyDown(with event: NSEvent) {
