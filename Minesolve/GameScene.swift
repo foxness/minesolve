@@ -78,8 +78,8 @@ class GameScene: SKScene {
         
         let origin = getOrigin()
         let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
-        square.fillColor = .blue
-        
+
+        let board = game.render()
         for y in 0..<game.height {
             for x in 0..<game.width {
                 let newSquare = square.copy() as! SKShapeNode
@@ -91,27 +91,26 @@ class GameScene: SKScene {
                 
                 newSquare.position = origin + newSquare.position
                 
-                let cell = game.board[y][x]
-                let cellState = game.boardState[y][x]
-                
-                if cellState == .revealed {
-                    switch cell {
-                    case .empty: break
-                    case .number(let n):
-                        let label = SKLabelNode(text: "\(n)")
-                        label.fontName = "Monaco"
-                        label.fontSize = squareSize * fontRatio
-                        label.horizontalAlignmentMode = .center
-                        label.verticalAlignmentMode = .center
-                        
-                        newSquare.addChild(label)
-                    case .mine:
-                        newSquare.fillColor = .red
-                    }
-                } else if cellState == .flagged {
+                let cell = board[y][x]
+                switch cell {
+                case .empty:
+                    newSquare.fillColor = .blue
+                case .flagged:
                     newSquare.fillColor = .black
-                } else {
+                case .mine:
+                    newSquare.fillColor = .red
+                case .unrevealed:
                     newSquare.fillColor = .gray
+                case .number(let n):
+                    newSquare.fillColor = .blue
+                    
+                    let label = SKLabelNode(text: "\(n)")
+                    label.fontName = "Monaco"
+                    label.fontSize = squareSize * fontRatio
+                    label.horizontalAlignmentMode = .center
+                    label.verticalAlignmentMode = .center
+                    
+                    newSquare.addChild(label)
                 }
                 
                 boardNode.addChild(newSquare)

@@ -15,9 +15,9 @@ struct Game {
     
     // MARK: - Properties
     
-    var board: [[Cell]]
-    var boardState: [[CellState]]
-    var isGenerated = false
+    private var board: [[Cell]]
+    private var boardState: [[CellState]]
+    private var isGenerated = false
     var state: GameState = .ongoing
     
     // MARK: - Init
@@ -107,6 +107,34 @@ struct Game {
         }
         
         print("RevealMany (\(x), \(y))")
+    }
+    
+    func render() -> [[RenderedCell]] {
+        var result = [[RenderedCell]]()
+        
+        for y in 0..<height {
+            result.append(Array(repeating: .empty, count: width))
+            
+            for x in 0..<width {
+                switch boardState[y][x] {
+                case .unrevealed:
+                    result[y][x] = .unrevealed
+                case .revealed:
+                    switch board[y][x] {
+                    case .empty:
+                        result[y][x] = .empty
+                    case .mine:
+                        result[y][x] = .mine
+                    case .number(let n):
+                        result[y][x] = .number(n)
+                    }
+                case .flagged:
+                    result[y][x] = .flagged
+                }
+            }
+        }
+        
+        return result
     }
 
     // MARK: - Private methods
