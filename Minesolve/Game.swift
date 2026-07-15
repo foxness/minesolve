@@ -12,6 +12,7 @@ struct Game {
     let width = 9
     let height = 9
     let mines = 10
+    let easyMode = true
     
     // MARK: - Properties
     
@@ -170,6 +171,13 @@ struct Game {
             let x = Int.random(in: 0..<width)
             let y = Int.random(in: 0..<height)
             let newPoint = Point(x: x, y: y)
+            
+            if easyMode {
+                let neighbors = util.getValidNeighbors(of: initialPoint)
+                if neighbors.contains(newPoint) {
+                    continue
+                }
+            }
             
             if newPoint == initialPoint || board[y][x] == .mine {
                 continue
