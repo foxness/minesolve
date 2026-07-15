@@ -45,9 +45,8 @@ struct Game {
     }
     
     mutating func reveal(x: Int, y: Int) {
-        if !isValidPoint(x: x, y: y) {
-            return
-        }
+        if !isValidPoint(x: x, y: y) { return }
+        if boardState[y][x] == .flagged { return }
         
         if !isGenerated {
             generateNew(x: x, y: y)
@@ -74,6 +73,19 @@ struct Game {
         }
         
         print(revealString)
+    }
+    
+    mutating func flag(x: Int, y: Int) {
+        if !isValidPoint(x: x, y: y) { return }
+        
+        switch boardState[y][x] {
+        case .unrevealed:
+            boardState[y][x] = .flagged
+        case .revealed:
+            break
+        case .flagged:
+            boardState[y][x] = .unrevealed
+        }
     }
 
     // MARK: - Private methods

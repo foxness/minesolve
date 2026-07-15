@@ -98,6 +98,8 @@ class GameScene: SKScene {
                     case .mine:
                         newSquare.fillColor = .red
                     }
+                } else if cellState == .flagged {
+                    newSquare.fillColor = .black
                 } else {
                     newSquare.fillColor = .gray
                 }
@@ -115,7 +117,7 @@ class GameScene: SKScene {
         addChild(center)
     }
     
-    func touchDown(atPoint pos: CGPoint) {
+    func touchDown(atPoint pos: CGPoint, right: Bool = false) {
         if let n = self.spinnyNode?.copy() as! SKShapeNode? {
             n.position = pos
             n.strokeColor = SKColor.green
@@ -126,7 +128,12 @@ class GameScene: SKScene {
         let resultX = Int(round((pos.x - origin.x) / squareSize))
         let resultY = Int(round((-pos.y + origin.y) / squareSize))
         
-        game.reveal(x: resultX, y: resultY)
+        if right {
+            game.flag(x: resultX, y: resultY)
+        } else {
+            game.reveal(x: resultX, y: resultY)
+        }
+        
         drawBoard()
     }
     
@@ -147,22 +154,26 @@ class GameScene: SKScene {
     }
     
     override func mouseDown(with event: NSEvent) {
-        self.touchDown(atPoint: event.location(in: self))
+        touchDown(atPoint: event.location(in: self))
+    }
+    
+    override func rightMouseDown(with event: NSEvent) {
+        touchDown(atPoint: event.location(in: self), right: true)
     }
     
     override func mouseDragged(with event: NSEvent) {
-        self.touchMoved(toPoint: event.location(in: self))
+        touchMoved(toPoint: event.location(in: self))
     }
     
     override func mouseUp(with event: NSEvent) {
-        self.touchUp(atPoint: event.location(in: self))
+        touchUp(atPoint: event.location(in: self))
     }
     
     override func keyDown(with event: NSEvent) {
         if event.isARepeat { return }
         
         switch event.keyCode {
-        case 0x0:
+        case 15:
             game.newGame()
             drawBoard()
         case 0x31:
