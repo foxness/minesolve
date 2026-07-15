@@ -11,4 +11,13 @@ enum RenderedCell: Equatable {
     case number(Int)
     case unrevealed
     case flagged
+    
+    func isUnrevealed() -> Bool {
+        switch self {
+        case .unrevealed, .flagged:
+            return true
+        default:
+            return false
+        }
+    }
 }

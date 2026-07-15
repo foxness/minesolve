@@ -10,7 +10,7 @@ import GameplayKit
 
 class GameScene: SKScene {
     
-    let squareSize: CGFloat = 50
+    let squareSize: CGFloat = 32
     let fontRatio: CGFloat = 28 / 50
 
 //    private var label : SKLabelNode?
@@ -204,7 +204,7 @@ class GameScene: SKScene {
             rightMouseDown = false
             game.revealMany(point: point)
         } else if right {
-            game.flag(point: point)
+            game.toggleFlag(point: point)
         } else {
             game.reveal(point: point)
         }

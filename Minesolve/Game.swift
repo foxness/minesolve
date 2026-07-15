@@ -9,9 +9,9 @@ struct Game {
     
     // MARK: - Constants
     
-    let width = 9
-    let height = 9
-    let mines = 10
+    let width = 30
+    let height = 16
+    let mines = 99
     let easyMode = true
     
     // MARK: - Properties
@@ -80,10 +80,24 @@ struct Game {
             print("You lose!")
         }
         
-        print(revealString)
+//        print(revealString)
         checkForWin()
     }
     
+    mutating func toggleFlag(point: Point) {
+        guard case .ongoing = state else { return }
+        guard util.isValid(point: point) else { return }
+        
+        switch boardState[point.y][point.x] {
+        case .unrevealed:
+            boardState[point.y][point.x] = .flagged
+        case .revealed:
+            break
+        case .flagged:
+            boardState[point.y][point.x] = .unrevealed
+        }
+    }
+
     mutating func flag(point: Point) {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
@@ -94,7 +108,7 @@ struct Game {
         case .revealed:
             break
         case .flagged:
-            boardState[point.y][point.x] = .unrevealed
+            break
         }
     }
     
@@ -120,11 +134,14 @@ struct Game {
         let rendered = render()
         let result = solver.solve(board: rendered)
         
+        print("Flagging \(result.pointsToFlag.count) and revealing \(result.pointsToReveal.count)")
+        for point in result.pointsToFlag {
+            flag(point: point)
+        }
+        
         for point in result.pointsToReveal {
             reveal(point: point)
         }
-        
-        print("Solved!")
     }
     
     func render() -> [[RenderedCell]] {
