@@ -10,6 +10,15 @@ struct Solver {
     let width: Int
     let height: Int
     
+    let util: Util
+    
+    init(width: Int, height: Int) {
+        self.width = width
+        self.height = height
+        
+        self.util = Util(width: width, height: width)
+    }
+    
     func solve(board: [[RenderedCell]]) -> SolveResult {
         var pointsToReveal = [Point]()
         var pointsToFlag = [Point]()
@@ -27,26 +36,6 @@ struct Solver {
     }
     
     // MARK: - Helper
-    
-    private func isValid(point: Point) -> Bool {
-        point.x >= 0 && point.x < width && point.y >= 0 && point.y < height
-    }
-    
-    private func getValidNeighbors(of point: Point) -> [Point] {
-        getAdjacentPoints().compactMap { adjacent in
-            let newPoint = point + adjacent
-            return isValid(point: newPoint) ? newPoint : nil
-        }
-    }
-    
-    private func getAdjacentPoints() -> [Point] {
-        [
-            (-1, -1), (-1, 0), (-1, 1),
-            (0, -1),         (0, 1),
-            (1, -1), (1, 0), (1, 1),
-        ]
-            .map { .init(x: $0, y: $1) }
-    }
 }
 
 struct SolveResult {

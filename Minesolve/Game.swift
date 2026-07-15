@@ -21,6 +21,7 @@ struct Game {
     var state: GameState = .ongoing
     
     private let solver: Solver
+    private let util: Util
 
     // MARK: - Init
 
@@ -34,6 +35,7 @@ struct Game {
         }
         
         solver = Solver(width: width, height: height)
+        util = Util(width: width, height: height)
     }
     
     // MARK: - Public methods
@@ -51,28 +53,28 @@ struct Game {
         isGenerated = false
     }
     
-    mutating func reveal(x: Int, y: Int) {
+    mutating func reveal(point: Point) {
         guard case .ongoing = state else { return }
-        guard isValidPoint(x: x, y: y) else { return }
-        guard boardState[y][x] == .unrevealed else { return }
+        guard util.isValid(point: point) else { return }
+        guard boardState[point.y][point.x] == .unrevealed else { return }
         
         if !isGenerated {
-            generateNew(x: x, y: y)
+            generateNew(point: point)
             isGenerated = true
         }
         
-        var revealString = "Reveal (\(x), \(y)) = "
-        let cell = board[y][x]
+        var revealString = "Reveal (\(point.x), \(point.y)) = "
+        let cell = board[point.y][point.x]
         switch cell {
         case .empty:
             revealString.append("empty")
-            revealEmpty(x: x, y: y)
+            revealEmpty(point: point)
         case .number(let n):
             revealString.append("number \(n)")
-            boardState[y][x] = .revealed
+            boardState[point.y][point.x] = .revealed
         case .mine:
             revealString.append("mine")
-            boardState[y][x] = .revealed
+            boardState[point.y][point.x] = .revealed
             state = .loss
             print("You lose!")
         }
@@ -81,36 +83,36 @@ struct Game {
         checkForWin()
     }
     
-    mutating func flag(x: Int, y: Int) {
+    mutating func flag(point: Point) {
         guard case .ongoing = state else { return }
-        guard isValidPoint(x: x, y: y) else { return }
+        guard util.isValid(point: point) else { return }
 
-        switch boardState[y][x] {
+        switch boardState[point.y][point.x] {
         case .unrevealed:
-            boardState[y][x] = .flagged
+            boardState[point.y][point.x] = .flagged
         case .revealed:
             break
         case .flagged:
-            boardState[y][x] = .unrevealed
+            boardState[point.y][point.x] = .unrevealed
         }
     }
     
-    mutating func revealMany(x: Int, y: Int) {
+    mutating func revealMany(point: Point) {
         guard case .ongoing = state else { return }
-        guard isValidPoint(x: x, y: y) else { return }
-        guard boardState[y][x] == .revealed else { return }
-        guard case .number(let n) = board[y][x] else { return }
+        guard util.isValid(point: point) else { return }
+        guard boardState[point.y][point.x] == .revealed else { return }
+        guard case .number(let n) = board[point.y][point.x] else { return }
         
-        let neighbors = getValidNeighbors(x: x, y: y)
-        let flaggedNeighborCount = neighbors.count(where: { boardState[$0.1][$0.0] == .flagged })
+        let neighbors = util.getValidNeighbors(of: point)
+        let flaggedNeighborCount = neighbors.count(where: { boardState[$0.y][$0.x] == .flagged })
         guard flaggedNeighborCount == n else { return }
         
-        let unrevealedNeighbors = neighbors.filter { boardState[$1][$0] == .unrevealed }
-        for (nx, ny) in unrevealedNeighbors {
-            reveal(x: nx, y: ny)
+        let unrevealedNeighbors = neighbors.filter { boardState[$0.y][$0.x] == .unrevealed }
+        for neighbor in unrevealedNeighbors {
+            reveal(point: neighbor)
         }
         
-        print("RevealMany (\(x), \(y))")
+        print("RevealMany (\(point.x), \(point.y))")
     }
     
     mutating func solve() {
@@ -118,7 +120,7 @@ struct Game {
         let result = solver.solve(board: rendered)
         
         for point in result.pointsToReveal {
-            reveal(x: point.x, y: point.y)
+            reveal(point: point)
         }
         
         print("Solved!")
@@ -154,21 +156,22 @@ struct Game {
 
     // MARK: - Private methods
     
-    private mutating func generateNew(x: Int, y: Int) {
-        generateMines(initialX: x, initialY: y)
+    private mutating func generateNew(point: Point) {
+        generateMines(initialPoint: point)
         fillNumbers()
         print("New game generated.")
     }
     
-    private mutating func generateMines(initialX: Int, initialY: Int) {
+    private mutating func generateMines(initialPoint: Point) {
         assert(!isGenerated)
         
         var placedMines = 0
         while placedMines < mines {
             let x = Int.random(in: 0..<width)
             let y = Int.random(in: 0..<height)
+            let newPoint = Point(x: x, y: y)
             
-            if (x == initialX && y == initialY) || board[y][x] == .mine {
+            if newPoint == initialPoint || board[y][x] == .mine {
                 continue
             }
             
@@ -180,16 +183,14 @@ struct Game {
     private mutating func fillNumbers() {
         for y in 0..<height {
             for x in 0..<width {
+                let point = Point(x: x, y: y)
                 if board[y][x] == .mine {
                     continue
                 }
                 
                 var mineCount = 0
-                for neighbor in getValidNeighbors(x: x, y: y) {
-                    let nx = neighbor.0
-                    let ny = neighbor.1
-                    
-                    if board[ny][nx] == .mine {
+                for neighbor in util.getValidNeighbors(of: point) {
+                    if board[neighbor.y][neighbor.x] == .mine {
                         mineCount += 1
                     }
                 }
@@ -201,41 +202,37 @@ struct Game {
         }
     }
     
-    private mutating func revealEmpty(x: Int, y: Int) {
-        var visited = [(Int, Int)]()
-        var currentWave = [(x, y)]
+    private mutating func revealEmpty(point: Point) {
+        var visited = [Point]()
+        var currentWave = [point]
         
         while !currentWave.isEmpty {
             visited += currentWave
             
-            var newWave = [(Int, Int)]()
-            for point in currentWave {
-                let (px, py) = point
-                
-                if board[py][px] != .empty {
+            var newWave = [Point]()
+            for wavePoint in currentWave {
+                if board[wavePoint.y][wavePoint.x] != .empty {
                     continue
                 }
                 
-                for neighbor in getValidNeighbors(x: px, y: py) {
-                    let (nx, ny) = neighbor
-                    
-                    if visited.contains(where: { $0 == (nx, ny) }) {
+                for neighbor in util.getValidNeighbors(of: wavePoint) {
+                    if visited.contains(neighbor) {
                         continue
                     }
                     
-                    if newWave.contains(where: { $0 == (nx, ny) }) {
+                    if newWave.contains(neighbor) {
                         continue
                     }
                     
-                    newWave += [(nx, ny)]
+                    newWave.append(neighbor)
                 }
             }
             
             currentWave = newWave
         }
         
-        for (px, py) in visited {
-            boardState[py][px] = .revealed
+        for p in visited {
+            boardState[p.y][p.x] = .revealed
         }
     }
     
@@ -256,27 +253,4 @@ struct Game {
             print("You win!")
         }
     }
-    
-    // MARK: - Helper
-    
-    private func isValidPoint(x: Int, y: Int) -> Bool {
-        x >= 0 && x < width && y >= 0 && y < height
-    }
-    
-    private func getValidNeighbors(x: Int, y: Int) -> [(Int, Int)] {
-        getAdjacentOffsets().compactMap { offset in
-            let nx = x + offset.0
-            let ny = y + offset.1
-            return isValidPoint(x: nx, y: ny) ? (nx, ny) : nil
-        }
-    }
-    
-    private func getAdjacentOffsets() -> [(Int, Int)] {
-        [
-            (-1, -1), (-1, 0), (-1, 1),
-            (0, -1),         (0, 1),
-            (1, -1), (1, 0), (1, 1),
-        ]
-    }
 }
-

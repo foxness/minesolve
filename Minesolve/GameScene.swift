@@ -197,15 +197,16 @@ class GameScene: SKScene {
         let origin = getOrigin()
         let resultX = Int(round((pos.x - origin.x) / squareSize))
         let resultY = Int(round((-pos.y + origin.y) / squareSize))
+        let point = Point(x: resultX, y: resultY)
         
         if right && leftMouseDown || !right && rightMouseDown {
             leftMouseDown = false
             rightMouseDown = false
-            game.revealMany(x: resultX, y: resultY)
+            game.revealMany(point: point)
         } else if right {
-            game.flag(x: resultX, y: resultY)
+            game.flag(point: point)
         } else {
-            game.reveal(x: resultX, y: resultY)
+            game.reveal(point: point)
         }
         
         drawGame()
