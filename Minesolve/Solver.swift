@@ -76,12 +76,72 @@ struct Solver {
             return isTouchingUncertain
         }
         
-        let lightDigitIslands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
-        for island in lightDigitIslands {
+        let islands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
+        print("Islands found: \(islands.count)")
+        for island in islands {
             print(island)
         }
         
+        let trueIslands = mergeIntoTrueIslands(pseudoIslands: islands, uncertain: uncertain)
+        print("True islands: \(trueIslands.count)")
+        for island in trueIslands {
+            print(island)
+        }
+
         return Set<Point>()
+    }
+    
+    private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
+        var merged = pseudoIslands
+        
+        var iteration = 0
+        while true {
+            let newMerged = mergeIntoTrueIslandsStep(pseudoIslands: merged, uncertain: uncertain)
+            if newMerged.count == merged.count {
+                break
+            }
+            
+            merged = newMerged
+            iteration += 1
+            print("Iteration \(iteration)")
+        }
+        
+        return merged
+    }
+
+    private func mergeIntoTrueIslandsStep(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
+        guard pseudoIslands.count > 1 else { return pseudoIslands }
+        
+        var trueIslands: [Set<Point>] = []
+        
+        var islandsWithUncertain: [(Set<Point>, Set<Point>)] = []
+        for island in pseudoIslands {
+            let uncertainOfIsland = Set(island.flatMap { util.adjacent(to: $0) }).intersection(uncertain)
+            islandsWithUncertain.append((island, uncertainOfIsland))
+        }
+        
+        while !islandsWithUncertain.isEmpty {
+            let (island, uncertainOfIsland) = islandsWithUncertain.removeFirst()
+            
+            var toMerge: [Set<Point>] = []
+            for (otherIsland, otherUncertainOfIsland) in islandsWithUncertain {
+                let shouldMerge = !uncertainOfIsland.intersection(otherUncertainOfIsland).isEmpty
+                if shouldMerge {
+                    toMerge.append(otherIsland)
+                }
+            }
+            
+            islandsWithUncertain.removeAll { (island_, uncertain_) in toMerge.contains(island_) }
+            
+            var trueIsland = island
+            for islandToMerge in toMerge {
+                trueIsland.formUnion(islandToMerge)
+            }
+            
+            trueIslands.append(trueIsland)
+        }
+        
+        return trueIslands
     }
     
     private func divideLightDigitIslands(board: RenderedBoard, lightDigits: Set<Point>) -> [Set<Point>] {
@@ -110,7 +170,6 @@ struct Solver {
             unclaimed.subtract(island)
         }
         
-        print("Islands found: \(islands.count)")
         return islands
     }
 
