@@ -54,4 +54,28 @@ struct Board {
     mutating func set(state: CellState, at point: Point) {
         boardState[point.y][point.x] = state
     }
+    
+    func render() -> RenderedBoard {
+        var result = RenderedBoard(width: width, height: height, mines: mines)
+        
+        for point in allPoints {
+            switch state(point) {
+            case .unrevealed:
+                result.set(cell: .unrevealed, at: point)
+            case .revealed:
+                switch cell(point) {
+                case .empty:
+                    result.set(cell: .empty, at: point)
+                case .mine:
+                    result.set(cell: .mine, at: point)
+                case .number(let n):
+                    result.set(cell: .number(n), at: point)
+                }
+            case .flagged:
+                result.set(cell: .flagged, at: point)
+            }
+        }
+        
+        return result
+    }
 }

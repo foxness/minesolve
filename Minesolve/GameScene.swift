@@ -80,41 +80,39 @@ class GameScene: SKScene {
         let square = SKShapeNode(rectOf: .init(width: squareSize, height: squareSize))
 
         let board = game.render()
-        for y in 0..<game.height {
-            for x in 0..<game.width {
-                let newSquare = square.copy() as! SKShapeNode
+        for point in board.allPoints {
+            let newSquare = square.copy() as! SKShapeNode
+            
+            newSquare.position = CGPoint(
+                x: CGFloat(point.x) * squareSize,
+                y: CGFloat(point.y) * -squareSize
+            )
+            
+            newSquare.position = origin + newSquare.position
+            
+            let cell = board.get(point)
+            switch cell {
+            case .empty:
+                newSquare.fillColor = .blue
+            case .flagged:
+                newSquare.fillColor = .black
+            case .mine:
+                newSquare.fillColor = .red
+            case .unrevealed:
+                newSquare.fillColor = .gray
+            case .number(let n):
+                newSquare.fillColor = .blue
                 
-                newSquare.position = CGPoint(
-                    x: CGFloat(x) * squareSize,
-                    y: CGFloat(y) * -squareSize
-                )
+                let label = SKLabelNode(text: "\(n)")
+                label.fontName = "Monaco"
+                label.fontSize = squareSize * fontRatio
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
                 
-                newSquare.position = origin + newSquare.position
-                
-                let cell = board[y][x]
-                switch cell {
-                case .empty:
-                    newSquare.fillColor = .blue
-                case .flagged:
-                    newSquare.fillColor = .black
-                case .mine:
-                    newSquare.fillColor = .red
-                case .unrevealed:
-                    newSquare.fillColor = .gray
-                case .number(let n):
-                    newSquare.fillColor = .blue
-                    
-                    let label = SKLabelNode(text: "\(n)")
-                    label.fontName = "Monaco"
-                    label.fontSize = squareSize * fontRatio
-                    label.horizontalAlignmentMode = .center
-                    label.verticalAlignmentMode = .center
-                    
-                    newSquare.addChild(label)
-                }
-                
-                boardNode.addChild(newSquare)
+                newSquare.addChild(label)
             }
+            
+            boardNode.addChild(newSquare)
         }
         
         addChild(boardNode)
@@ -240,10 +238,10 @@ class GameScene: SKScene {
             game.newGame()
             drawGame()
         case 17: // T
-            game.primitiveSolveStep()
+            game.primitiveSolve()
             drawGame()
         case 5: // G
-            game.primitiveSolve()
+            game.primitiveSolveStep()
             drawGame()
         case 0x31:
             break

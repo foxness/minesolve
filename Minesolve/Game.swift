@@ -125,7 +125,7 @@ struct Game {
     mutating func primitiveSolveStep() {
         guard case .ongoing = state else { return }
         
-        let rendered = render()
+        let rendered = board.render()
         let result = solver.primitiveSolveStep(board: rendered)
         
         print("Flagging \(result.pointsToFlag.count) and revealing \(result.pointsToReveal.count)")
@@ -142,7 +142,7 @@ struct Game {
         while true {
             guard case .ongoing = state else { return }
             
-            let rendered = render()
+            let rendered = board.render()
             let result = solver.primitiveSolveStep(board: rendered)
 
             print("Flagging \(result.pointsToFlag.count) and revealing \(result.pointsToReveal.count)")
@@ -159,35 +159,9 @@ struct Game {
             }
         }
     }
-
-    func render() -> [[RenderedCell]] {
-        var result = [[RenderedCell]]()
-        
-        for y in 0..<height {
-            result.append(Array(repeating: .empty, count: width))
-            
-            for x in 0..<width {
-                let point = Point(x: x, y: y)
-                
-                switch board.state(point) {
-                case .unrevealed:
-                    result[y][x] = .unrevealed
-                case .revealed:
-                    switch board.cell(point) {
-                    case .empty:
-                        result[y][x] = .empty
-                    case .mine:
-                        result[y][x] = .mine
-                    case .number(let n):
-                        result[y][x] = .number(n)
-                    }
-                case .flagged:
-                    result[y][x] = .flagged
-                }
-            }
-        }
-        
-        return result
+    
+    func render() -> RenderedBoard {
+        board.render()
     }
 
     // MARK: - Private methods
