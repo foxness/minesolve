@@ -234,7 +234,7 @@ class GameScene: SKScene {
         if event.isARepeat { return }
         
         switch event.keyCode {
-        case 15: // R
+        case 2: // D
             game.newGame()
             drawGame()
         case 17: // T

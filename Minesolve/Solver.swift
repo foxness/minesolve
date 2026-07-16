@@ -5,6 +5,7 @@
 //  Created by River Deem on 2026-07-15.
 //
 
+import Foundation
 struct Solver {
     
     // MARK: - Constants
@@ -35,11 +36,12 @@ struct Solver {
         
         guard primitiveRevealed.isEmpty else {
             // return primitive
+            print("Primitive solution found")
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
         }
         
-        let complexToReveal = solveIslands(board: board, primitiveFlagged: primitiveFlagged)
-        return SolveResult(pointsToReveal: complexToReveal, pointsToFlag: primitiveFlagged)
+        print("Complex solving...")
+        return solveIslands(board: board, primitiveFlagged: primitiveFlagged)
     }
 
     func primitiveSolveStep(board: RenderedBoard) -> SolveResult {
@@ -51,8 +53,7 @@ struct Solver {
     
     // MARK: - Private methods
     
-    private func solveIslands(board: RenderedBoard, primitiveFlagged: Set<Point>) -> Set<Point> {
-//        var lightPoints = Set<Point>() // points that touch a digit
+    private func solveIslands(board: RenderedBoard, primitiveFlagged: Set<Point>) -> SolveResult {
         var darkPoints: Set<Point> = [] // points that dont touch a digit
         
         let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
@@ -62,9 +63,7 @@ struct Solver {
             let neighbors = util.adjacent(to: point)
             let isTouchingDigit = neighbors.contains { board.get($0).isDigit() }
             
-            if isTouchingDigit {
-//                lightPoints.insert(point)
-            } else {
+            if !isTouchingDigit {
                 darkPoints.insert(point)
             }
         }
@@ -77,25 +76,75 @@ struct Solver {
         }
         
         let islands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
-        print("Islands found: \(islands.count)")
-        for island in islands {
-            print(island)
-        }
+//        print("Islands found: \(islands.count)")
+//        for island in islands {
+//            print(island)
+//        }
         
         let trueDigitIslands = mergeIntoTrueIslands(pseudoIslands: islands, uncertain: uncertain)
         print("True islands: \(trueDigitIslands.count)")
-        for island in trueDigitIslands {
-            print(island)
-        }
+//        for island in trueDigitIslands {
+//            print(island)
+//        }
         
         let uncertainIslands = trueDigitIslands.map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
+        var setOfIslandSolutions: [[[Point: Bool]]] = []
         for island in uncertainIslands {
-            print("Solving island: \(island)")
-            let solutions = solveOneIsland(island: island, board: board, primitiveFlagged: primitiveFlagged)
-            print("Solutions: \(solutions.count)")
+            print("Solving island of \(island.count)")
+            let oneIslandSolutions = solveOneIsland(island: island, board: board, primitiveFlagged: primitiveFlagged)
+            print("Solutions: \(oneIslandSolutions.count)")
+            
+            setOfIslandSolutions.append(oneIslandSolutions)
         }
+        
+        return formSolution(setOfIslandSolutions, primitiveFlagged: primitiveFlagged)
+    }
+    
+    private func formSolution(_ setOfIslandSolutions: [[[Point: Bool]]], primitiveFlagged: Set<Point>) -> SolveResult {
+        guard !setOfIslandSolutions.isEmpty else {
+            return SolveResult(pointsToReveal: [], pointsToFlag: [])
+        }
+        
+        var mineProbabilities: [Point: Double] = [:]
+        
+        for oneIslandSolutions in setOfIslandSolutions {
+            let island = oneIslandSolutions[0].keys
+            var islandMineCounts: [Point: Int] = [:]
+            island.forEach { islandMineCounts[$0] = 0 }
+            
+            for solution in oneIslandSolutions {
+                for (point, isMine) in solution {
+                    islandMineCounts[point]! += isMine ? 1 : 0
+                }
+            }
+            
+            island.forEach { point in
+                let probability = Double(islandMineCounts[point]!) / Double(oneIslandSolutions.count)
+                mineProbabilities[point] = probability
+            }
+        }
+        
+        let sortedProbabilities = mineProbabilities.map { (key, value) in (key, value) }.sorted { $0.1 < $1.1 }
+//        for p in sortedProbabilities.reversed() {
+//            print("\(p.0): \(String(format: "%.2f", p.1))")
+//        }
+        
+        let safePoints = Set(sortedProbabilities.filter { (key, value) in value == 0 }.map(\.0))
+        print("Safe: \(safePoints)")
+        
+        let pointsToReveal: Set<Point>
+        if safePoints.isEmpty {
+            let riskyPoint = sortedProbabilities.first!
+            print("Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.2f", riskyPoint.1))")
+            pointsToReveal = [riskyPoint.0]
+        } else {
+            pointsToReveal = safePoints
+        }
+        
+        let pointsToFlag = Set(sortedProbabilities.filter { (key, value) in value == 1 }.map(\.0))
+            .union(primitiveFlagged)
 
-        return Set<Point>()
+        return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
     private func solveOneIsland(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [[Point: Bool]] {
@@ -179,7 +228,6 @@ struct Solver {
     private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
         var merged = pseudoIslands
         
-//        var iteration = 0
         while true {
             let newMerged = mergeIntoTrueIslandsStep(pseudoIslands: merged, uncertain: uncertain)
             if newMerged.count == merged.count {
@@ -187,8 +235,6 @@ struct Solver {
             }
             
             merged = newMerged
-//            iteration += 1
-//            print("Iteration \(iteration)")
         }
         
         return merged
