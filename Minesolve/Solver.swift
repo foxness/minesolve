@@ -19,7 +19,7 @@ struct Solver {
         self.util = Util(width: width, height: height)
     }
     
-    func solve(board: [[RenderedCell]]) -> SolveResult {
+    func primitiveSolveStep(board: [[RenderedCell]]) -> SolveResult {
         var pointsToFlag = Set<Point>()
         var pointsToReveal = Set<Point>()
 

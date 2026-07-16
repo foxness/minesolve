@@ -122,9 +122,11 @@ struct Game {
         print("RevealMany (\(point.x), \(point.y))")
     }
     
-    mutating func solve() {
+    mutating func primitiveSolveStep() {
+        guard case .ongoing = state else { return }
+        
         let rendered = render()
-        let result = solver.solve(board: rendered)
+        let result = solver.primitiveSolveStep(board: rendered)
         
         print("Flagging \(result.pointsToFlag.count) and revealing \(result.pointsToReveal.count)")
         for point in result.pointsToFlag {
@@ -136,6 +138,28 @@ struct Game {
         }
     }
     
+    mutating func primitiveSolve() {
+        while true {
+            guard case .ongoing = state else { return }
+            
+            let rendered = render()
+            let result = solver.primitiveSolveStep(board: rendered)
+
+            print("Flagging \(result.pointsToFlag.count) and revealing \(result.pointsToReveal.count)")
+            for point in result.pointsToFlag {
+                flag(point: point)
+            }
+            
+            for point in result.pointsToReveal {
+                reveal(point: point)
+            }
+            
+            if result.pointsToReveal.isEmpty {
+                break
+            }
+        }
+    }
+
     func render() -> [[RenderedCell]] {
         var result = [[RenderedCell]]()
         

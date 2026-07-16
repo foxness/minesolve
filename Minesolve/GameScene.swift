@@ -240,7 +240,10 @@ class GameScene: SKScene {
             game.newGame()
             drawGame()
         case 17: // T
-            game.solve()
+            game.primitiveSolveStep()
+            drawGame()
+        case 5: // G
+            game.primitiveSolve()
             drawGame()
         case 0x31:
             break
