@@ -13,14 +13,14 @@ struct Util {
         point.x >= 0 && point.x < width && point.y >= 0 && point.y < height
     }
     
-    func getValidNeighbors(of point: Point) -> [Point] {
-        getAdjacentPoints().compactMap { adjacent in
+    func adjacent(of point: Point) -> [Point] {
+        adjacentPoints().compactMap { adjacent in
             let newPoint = point + adjacent
             return isValid(point: newPoint) ? newPoint : nil
         }
     }
     
-    func getAdjacentPoints() -> [Point] {
+    func adjacentPoints() -> [Point] {
         [
             (-1, -1), (-1, 0), (-1, 1),
             (0, -1),         (0, 1),

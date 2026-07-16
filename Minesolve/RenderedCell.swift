@@ -20,4 +20,13 @@ enum RenderedCell: Equatable {
             return false
         }
     }
+    
+    func isNumber() -> Bool {
+        switch self {
+        case .number:
+            return true
+        default:
+            return false
+        }
+    }
 }
