@@ -82,19 +82,104 @@ struct Solver {
             print(island)
         }
         
-        let trueIslands = mergeIntoTrueIslands(pseudoIslands: islands, uncertain: uncertain)
-        print("True islands: \(trueIslands.count)")
-        for island in trueIslands {
+        let trueDigitIslands = mergeIntoTrueIslands(pseudoIslands: islands, uncertain: uncertain)
+        print("True islands: \(trueDigitIslands.count)")
+        for island in trueDigitIslands {
             print(island)
+        }
+        
+        let uncertainIslands = trueDigitIslands.map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
+        for island in uncertainIslands {
+            print("Solving island: \(island)")
+            let solutions = solveOneIsland(island: island, board: board, primitiveFlagged: primitiveFlagged)
+            print("Solutions: \(solutions.count)")
         }
 
         return Set<Point>()
     }
     
+    private func solveOneIsland(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [[Point: Bool]] {
+        var solutions: [[Point: Bool]] = []
+        var current: [Point: Bool?] = [:] // [coord: isMine?]
+        island.forEach { current.updateValue(nil, forKey: $0) }
+
+        let digits = adjustedDigits(island: island, board: board, primitiveFlagged: primitiveFlagged)
+        solve(current: current, digits: digits, depth: 0, solutions: &solutions)
+        
+        return solutions
+    }
+    
+    private func solve(current: [Point: Bool?], digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
+//        print("Depth: \(depth)")
+        
+        let solved = current.keys.filter { current[$0]! != nil }
+//        print("solved: \(solved)")
+
+        for (point, value) in digits {
+            let neighbors = Set(util.adjacent(to: point)).intersection(current.keys)
+            let unsolvedNeighbors = neighbors.subtracting(solved)
+//            print("neighbors: \(neighbors), unsolvedNeighbors: \(unsolvedNeighbors)")
+            if !unsolvedNeighbors.isEmpty {
+                continue
+            }
+            
+            let mineCount = neighbors.compactMap { current[$0]! }.count { $0 }
+            if value != mineCount {
+//                print("Found mismatch at \(point), value is \(value) but mineCount is \(mineCount), returning...")
+                return
+            }
+        }
+        
+        let unsolved = Set(current.keys).subtracting(solved)
+        if unsolved.isEmpty {
+            var solution: [Point: Bool] = [:]
+            for (k, v) in current {
+                solution[k] = v!
+            }
+            
+            solutions.append(solution)
+            return
+        }
+        
+        let pointToSolve = unsolved.first!
+        var newCurrent = current
+        
+        newCurrent[pointToSolve] = false
+        solve(current: newCurrent, digits: digits, depth: depth + 1, solutions: &solutions)
+        
+        newCurrent[pointToSolve] = true
+        solve(current: newCurrent, digits: digits, depth: depth + 1, solutions: &solutions)
+    }
+    
+    private func adjustedDigits(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [Point: Int] {
+        let digits = Set(island.flatMap { util.adjacent(to: $0) })
+            .subtracting(island)
+            .filter { board.get($0).isDigit() }
+        
+        var result: [Point: Int] = [:]
+        for digit in digits {
+            let cell = board.get(digit)
+            var adjusted: Int
+            switch cell {
+            case .digit(let n):
+                adjusted = n
+            default:
+                fatalError()
+            }
+            
+            let adjacentFlags = Set(util.adjacent(to: digit)).intersection(primitiveFlagged)
+            adjusted -= adjacentFlags.count
+            
+            result[digit] = adjusted
+        }
+        
+        return result
+    }
+    
     private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
         var merged = pseudoIslands
         
-        var iteration = 0
+//        var iteration = 0
         while true {
             let newMerged = mergeIntoTrueIslandsStep(pseudoIslands: merged, uncertain: uncertain)
             if newMerged.count == merged.count {
@@ -102,8 +187,8 @@ struct Solver {
             }
             
             merged = newMerged
-            iteration += 1
-            print("Iteration \(iteration)")
+//            iteration += 1
+//            print("Iteration \(iteration)")
         }
         
         return merged
@@ -116,7 +201,7 @@ struct Solver {
         
         var islandsWithUncertain: [(Set<Point>, Set<Point>)] = []
         for island in pseudoIslands {
-            let uncertainOfIsland = Set(island.flatMap { util.adjacent(to: $0) }).intersection(uncertain)
+            let uncertainOfIsland = convertToUncertainIsland(digitIsland: island, uncertain: uncertain)
             islandsWithUncertain.append((island, uncertainOfIsland))
         }
         
@@ -211,6 +296,10 @@ struct Solver {
         }
         
         return pointsToReveal
+    }
+    
+    private func convertToUncertainIsland(digitIsland: Set<Point>, uncertain: Set<Point>) -> Set<Point> {
+        Set(digitIsland.flatMap { util.adjacent(to: $0) }).intersection(uncertain)
     }
 }
 
