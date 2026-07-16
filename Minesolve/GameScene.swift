@@ -243,6 +243,9 @@ class GameScene: SKScene {
         case 5: // G
             game.primitiveSolveStep()
             drawGame()
+        case 3: // F
+            game.solve()
+            drawGame()
         case 0x31:
             break
 //            if let label = self.label {

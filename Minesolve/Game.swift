@@ -110,7 +110,7 @@ struct Game {
         guard board.state(point) == .revealed else { return }
         guard case .digit(let n) = board.cell(point) else { return }
         
-        let neighbors = util.adjacent(of: point)
+        let neighbors = util.adjacent(to: point)
         let flaggedNeighborCount = neighbors.count { board.state($0) == .flagged }
         guard flaggedNeighborCount == n else { return }
         
@@ -160,6 +160,21 @@ struct Game {
         }
     }
     
+    mutating func solve() {
+        guard case .ongoing = state else { return }
+        
+        let rendered = board.render()
+        let result = solver.solve(board: rendered)
+        
+        for point in result.pointsToFlag {
+            flag(point: point)
+        }
+        
+        for point in result.pointsToReveal {
+            reveal(point: point)
+        }
+    }
+
     func render() -> RenderedBoard {
         board.render()
     }
@@ -182,7 +197,7 @@ struct Game {
             let newPoint = Point(x: x, y: y)
             
             if easyMode {
-                let neighbors = util.adjacent(of: initialPoint)
+                let neighbors = util.adjacent(to: initialPoint)
                 if neighbors.contains(newPoint) {
                     continue
                 }
@@ -204,7 +219,7 @@ struct Game {
             }
             
             var mineCount = 0
-            for neighbor in util.adjacent(of: point) {
+            for neighbor in util.adjacent(to: point) {
                 if board.cell(neighbor) == .mine {
                     mineCount += 1
                 }
@@ -229,7 +244,7 @@ struct Game {
                     continue
                 }
                 
-                for neighbor in util.adjacent(of: wavePoint) {
+                for neighbor in util.adjacent(to: wavePoint) {
                     if visited.contains(neighbor) {
                         continue
                     }
