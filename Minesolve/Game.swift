@@ -17,8 +17,7 @@ struct Game {
     // MARK: - Properties
     
     private var board: Board
-    private var isGenerated = false
-    var state: GameState = .ongoing
+    var state: GameState = .uninitialized
     
     private let solver: Solver
     private let util: Util
@@ -35,24 +34,28 @@ struct Game {
     // MARK: - Public methods
     
     mutating func newGame() {
-        state = .ongoing
+        state = .uninitialized
         
         for point in board.allPoints {
             board.set(cell: .empty, at: point)
             board.set(state: .unrevealed, at: point)
         }
-        
-        isGenerated = false
     }
     
     mutating func reveal(point: Point) {
-        guard case .ongoing = state else { return }
+        switch state {
+        case .uninitialized, .ongoing:
+            break
+        case .win, .loss:
+            return
+        }
+        
         guard util.isValid(point: point) else { return }
         guard board.state(point) == .unrevealed else { return }
         
-        if !isGenerated {
+        if state == .uninitialized {
             generateNew(point: point)
-            isGenerated = true
+            state = .ongoing
         }
         
         var revealString = "Reveal (\(point.x), \(point.y)) = "
@@ -160,7 +163,7 @@ struct Game {
         }
     }
     
-    mutating func solve() {
+    mutating func solveStep() {
         guard case .ongoing = state else { return }
         
         let rendered = board.render()
@@ -188,7 +191,7 @@ struct Game {
     }
     
     private mutating func generateMines(initialPoint: Point) {
-        assert(!isGenerated)
+        assert(state == .uninitialized)
         
         var placedMines = 0
         while placedMines < mines {

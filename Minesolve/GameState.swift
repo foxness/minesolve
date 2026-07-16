@@ -6,6 +6,7 @@
 //
 
 enum GameState {
+    case uninitialized
     case ongoing
     case win
     case loss

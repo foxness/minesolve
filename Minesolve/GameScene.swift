@@ -24,6 +24,7 @@ class GameScene: SKScene {
     
     let localCamera = SKCameraNode()
     var game = Game()
+    let semaphore = DispatchSemaphore(value: 1)
     
     override func didMove(to view: SKView) {
         
@@ -121,6 +122,7 @@ class GameScene: SKScene {
     func drawState() {
         let text: String
         switch game.state {
+        case .uninitialized: text = "Uninitialized"
         case .ongoing: text = "Ongoing"
         case .loss: text = "Loss"
         case .win: text = "Win"
@@ -235,17 +237,43 @@ class GameScene: SKScene {
         
         switch event.keyCode {
         case 2: // D
-            game.newGame()
-            drawGame()
+            DispatchQueue.global().async { [weak self] in
+                guard let self else { return }
+                self.game.newGame()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.drawGame()
+                }
+            }
         case 17: // T
-            game.primitiveSolve()
-            drawGame()
+            DispatchQueue.global().async { [weak self] in
+                guard let self else { return }
+                self.game.primitiveSolve()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.drawGame()
+                }
+            }
         case 5: // G
-            game.primitiveSolveStep()
-            drawGame()
+            DispatchQueue.global().async { [weak self] in
+                guard let self else { return }
+                self.game.primitiveSolveStep()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.drawGame()
+                }
+            }
         case 3: // F
-            game.solve()
-            drawGame()
+            DispatchQueue.global().async { [weak self] in
+                guard let self else { return }
+                self.game.solveStep()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.drawGame()
+                }
+            }
+        case 9: // C
+            loopify()
         case 0x31:
             break
 //            if let label = self.label {
@@ -259,6 +287,29 @@ class GameScene: SKScene {
     
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
+    }
+    
+    func loopify() {
+        DispatchQueue.global().async { [weak self] in
+            guard let self else { return }
+            
+            while true {
+                if self.game.state != .ongoing {
+                    break
+                }
+                
+                self.semaphore.wait()
+                self.game.solveStep()
+                
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    
+                    self.drawGame()
+                    self.semaphore.signal()
+                }
+                
+            }
+        }
     }
 }
 
