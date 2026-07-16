@@ -13,6 +13,18 @@ struct Board {
     private var board: [[Cell]]
     private var boardState: [[CellState]]
     
+    var allPoints: [Point] {
+        var result = [Point]()
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                result.append(Point(x: x, y: y))
+            }
+        }
+        
+        return result
+    }
+
     init(width: Int, height: Int, mines: Int) {
         self.width = width
         self.height = height
