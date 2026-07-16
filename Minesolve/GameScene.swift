@@ -10,7 +10,7 @@ import GameplayKit
 
 class GameScene: SKScene {
     
-    let squareSize: CGFloat = 32
+    let squareSize: CGFloat = 50
     let fontRatio: CGFloat = 28 / 50
 
 //    private var label : SKLabelNode?

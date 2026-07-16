@@ -9,15 +9,14 @@ struct Game {
     
     // MARK: - Constants
     
-    let width = 30
-    let height = 16
-    let mines = 99
+    let width = 9
+    let height = 9
+    let mines = 20
     let easyMode = true
     
     // MARK: - Properties
     
-    private var board: [[Cell]]
-    private var boardState: [[CellState]]
+    private var board: Board
     private var isGenerated = false
     var state: GameState = .ongoing
     
@@ -27,13 +26,7 @@ struct Game {
     // MARK: - Init
 
     init() {
-        board = []
-        boardState = []
-        
-        for _ in 0..<height {
-            board.append(Array(repeating: .empty, count: width))
-            boardState.append(Array(repeating: .unrevealed, count: width))
-        }
+        board = Board(width: width, height: height, mines: mines)
         
         solver = Solver(width: width, height: height)
         util = Util(width: width, height: height)
@@ -46,8 +39,9 @@ struct Game {
         
         for y in 0..<height {
             for x in 0..<width {
-                board[y][x] = .empty
-                boardState[y][x] = .unrevealed
+                let point = Point(x: x, y: y)
+                board.set(cell: .empty, at: point)
+                board.set(state: .unrevealed, at: point)
             }
         }
         
@@ -57,7 +51,7 @@ struct Game {
     mutating func reveal(point: Point) {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
-        guard boardState[point.y][point.x] == .unrevealed else { return }
+        guard board.state(point) == .unrevealed else { return }
         
         if !isGenerated {
             generateNew(point: point)
@@ -65,17 +59,17 @@ struct Game {
         }
         
         var revealString = "Reveal (\(point.x), \(point.y)) = "
-        let cell = board[point.y][point.x]
+        let cell = board.cell(point)
         switch cell {
         case .empty:
             revealString.append("empty")
             revealEmpty(point: point)
         case .number(let n):
             revealString.append("number \(n)")
-            boardState[point.y][point.x] = .revealed
+            board.set(state: .revealed, at: point)
         case .mine:
             revealString.append("mine")
-            boardState[point.y][point.x] = .revealed
+            board.set(state: .revealed, at: point)
             state = .loss
             print("You lose!")
             revealAllMines()
@@ -89,13 +83,13 @@ struct Game {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
         
-        switch boardState[point.y][point.x] {
+        switch board.state(point) {
         case .unrevealed:
-            boardState[point.y][point.x] = .flagged
+            board.set(state: .flagged, at: point)
         case .revealed:
             break
         case .flagged:
-            boardState[point.y][point.x] = .unrevealed
+            board.set(state: .unrevealed, at: point)
         }
     }
 
@@ -103,9 +97,9 @@ struct Game {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
 
-        switch boardState[point.y][point.x] {
+        switch board.state(point) {
         case .unrevealed:
-            boardState[point.y][point.x] = .flagged
+            board.set(state: .flagged, at: point)
         case .revealed:
             break
         case .flagged:
@@ -116,14 +110,14 @@ struct Game {
     mutating func revealMany(point: Point) {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
-        guard boardState[point.y][point.x] == .revealed else { return }
-        guard case .number(let n) = board[point.y][point.x] else { return }
+        guard board.state(point) == .revealed else { return }
+        guard case .number(let n) = board.cell(point) else { return }
         
         let neighbors = util.getValidNeighbors(of: point)
-        let flaggedNeighborCount = neighbors.count(where: { boardState[$0.y][$0.x] == .flagged })
+        let flaggedNeighborCount = neighbors.count(where: { board.state($0) == .flagged })
         guard flaggedNeighborCount == n else { return }
         
-        let unrevealedNeighbors = neighbors.filter { boardState[$0.y][$0.x] == .unrevealed }
+        let unrevealedNeighbors = neighbors.filter { board.state($0) == .unrevealed }
         for neighbor in unrevealedNeighbors {
             reveal(point: neighbor)
         }
@@ -152,11 +146,13 @@ struct Game {
             result.append(Array(repeating: .empty, count: width))
             
             for x in 0..<width {
-                switch boardState[y][x] {
+                let point = Point(x: x, y: y)
+                
+                switch board.state(point) {
                 case .unrevealed:
                     result[y][x] = .unrevealed
                 case .revealed:
-                    switch board[y][x] {
+                    switch board.cell(point) {
                     case .empty:
                         result[y][x] = .empty
                     case .mine:
@@ -197,11 +193,11 @@ struct Game {
                 }
             }
             
-            if newPoint == initialPoint || board[y][x] == .mine {
+            if newPoint == initialPoint || board.cell(newPoint) == .mine {
                 continue
             }
             
-            board[y][x] = .mine
+            board.set(cell: .mine, at: newPoint)
             placedMines += 1
         }
     }
@@ -210,19 +206,19 @@ struct Game {
         for y in 0..<height {
             for x in 0..<width {
                 let point = Point(x: x, y: y)
-                if board[y][x] == .mine {
+                if board.cell(point) == .mine {
                     continue
                 }
                 
                 var mineCount = 0
                 for neighbor in util.getValidNeighbors(of: point) {
-                    if board[neighbor.y][neighbor.x] == .mine {
+                    if board.cell(neighbor) == .mine {
                         mineCount += 1
                     }
                 }
                 
                 if mineCount > 0 {
-                    board[y][x] = .number(mineCount)
+                    board.set(cell: .number(mineCount), at: point)
                 }
             }
         }
@@ -237,7 +233,7 @@ struct Game {
             
             var newWave = [Point]()
             for wavePoint in currentWave {
-                if board[wavePoint.y][wavePoint.x] != .empty {
+                if board.cell(wavePoint) != .empty {
                     continue
                 }
                 
@@ -258,7 +254,7 @@ struct Game {
         }
         
         for p in visited {
-            boardState[p.y][p.x] = .revealed
+            board.set(state: .revealed, at: p)
         }
     }
     
@@ -268,7 +264,8 @@ struct Game {
         var unrevealedCount = 0
         for y in 0..<height {
             for x in 0..<width {
-                if boardState[y][x] != .revealed {
+                let point = Point(x: x, y: y)
+                if board.state(point) != .revealed {
                     unrevealedCount += 1
                 }
             }
@@ -283,8 +280,9 @@ struct Game {
     private mutating func revealAllMines() {
         for y in 0..<height {
             for x in 0..<width {
-                if board[y][x] == .mine, boardState[y][x] != .flagged {
-                    boardState[y][x] = .revealed
+                let point = Point(x: x, y: y)
+                if board.cell(point) == .mine, board.state(point) != .flagged {
+                    board.set(state: .revealed, at: point)
                 }
             }
         }
