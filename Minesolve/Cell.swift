@@ -8,5 +8,5 @@
 enum Cell: Equatable {
     case empty
     case mine
-    case number(Int)
+    case digit(Int)
 }

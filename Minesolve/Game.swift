@@ -61,8 +61,8 @@ struct Game {
         case .empty:
             revealString.append("empty")
             revealEmpty(point: point)
-        case .number(let n):
-            revealString.append("number \(n)")
+        case .digit(let n):
+            revealString.append("digit \(n)")
             board.set(state: .revealed, at: point)
         case .mine:
             revealString.append("mine")
@@ -108,7 +108,7 @@ struct Game {
         guard case .ongoing = state else { return }
         guard util.isValid(point: point) else { return }
         guard board.state(point) == .revealed else { return }
-        guard case .number(let n) = board.cell(point) else { return }
+        guard case .digit(let n) = board.cell(point) else { return }
         
         let neighbors = util.adjacent(of: point)
         let flaggedNeighborCount = neighbors.count { board.state($0) == .flagged }
@@ -168,7 +168,7 @@ struct Game {
     
     private mutating func generateNew(point: Point) {
         generateMines(initialPoint: point)
-        fillNumbers()
+        fillDigits()
         print("New game generated.")
     }
     
@@ -197,7 +197,7 @@ struct Game {
         }
     }
     
-    private mutating func fillNumbers() {
+    private mutating func fillDigits() {
         for point in board.allPoints {
             if board.cell(point) == .mine {
                 continue
@@ -211,7 +211,7 @@ struct Game {
             }
             
             if mineCount > 0 {
-                board.set(cell: .number(mineCount), at: point)
+                board.set(cell: .digit(mineCount), at: point)
             }
         }
     }

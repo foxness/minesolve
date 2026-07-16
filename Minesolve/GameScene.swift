@@ -100,7 +100,7 @@ class GameScene: SKScene {
                 newSquare.fillColor = .red
             case .unrevealed:
                 newSquare.fillColor = .gray
-            case .number(let n):
+            case .digit(let n):
                 newSquare.fillColor = .blue
                 
                 let label = SKLabelNode(text: "\(n)")

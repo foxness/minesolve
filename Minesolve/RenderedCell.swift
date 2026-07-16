@@ -8,7 +8,7 @@
 enum RenderedCell: Equatable {
     case empty
     case mine
-    case number(Int)
+    case digit(Int)
     case unrevealed
     case flagged
     
@@ -21,9 +21,9 @@ enum RenderedCell: Equatable {
         }
     }
     
-    func isNumber() -> Bool {
+    func isDigit() -> Bool {
         switch self {
-        case .number:
+        case .digit:
             return true
         default:
             return false

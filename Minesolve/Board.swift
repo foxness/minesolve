@@ -68,8 +68,8 @@ struct Board {
                     result.set(cell: .empty, at: point)
                 case .mine:
                     result.set(cell: .mine, at: point)
-                case .number(let n):
-                    result.set(cell: .number(n), at: point)
+                case .digit(let n):
+                    result.set(cell: .digit(n), at: point)
                 }
             case .flagged:
                 result.set(cell: .flagged, at: point)

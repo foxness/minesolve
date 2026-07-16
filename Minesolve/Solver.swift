@@ -52,17 +52,17 @@ struct Solver {
     // MARK: - Private methods
     
     private func solveIslands(board: RenderedBoard, primitiveFlagged: Set<Point>) -> Set<Point> {
-        var lightPoints = Set<Point>() // points that touch a number
-        var darkPoints = Set<Point>() // points that dont touch a number
+        var lightPoints = Set<Point>() // points that touch a digit
+        var darkPoints = Set<Point>() // points that dont touch a digit
         
         let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
         let uncertain = unrevealed.subtracting(primitiveFlagged)
         
         for point in uncertain {
             let neighbors = util.adjacent(of: point)
-            let isTouchingNumber = neighbors.contains { board.get($0).isNumber() }
+            let isTouchingDigit = neighbors.contains { board.get($0).isDigit() }
             
-            if isTouchingNumber {
+            if isTouchingDigit {
                 lightPoints.insert(point)
             } else {
                 darkPoints.insert(point)
@@ -76,7 +76,7 @@ struct Solver {
         var pointsToFlag = Set<Point>()
         
         for point in board.allPoints {
-            if case .number(let n) = board.get(point) {
+            if case .digit(let n) = board.get(point) {
                 let neighbors = util.adjacent(of: point)
                 let unrevealedNeighbors = Set(neighbors.filter { board.get($0).isUnrevealed() })
                 
@@ -93,16 +93,15 @@ struct Solver {
         var pointsToReveal = Set<Point>()
         var neighborsOfFlagged = Set<Point>()
         for point in pointsToFlag {
-            let numberNeighbors = util.adjacent(of: point).filter { board.get($0).isNumber() }
-            
-            neighborsOfFlagged.formUnion(numberNeighbors)
+            let digitNeighbors = util.adjacent(of: point).filter { board.get($0).isDigit() }
+            neighborsOfFlagged.formUnion(digitNeighbors)
         }
         
         for point in neighborsOfFlagged {
             let neighbors = Set(util.adjacent(of: point))
             let intersection = neighbors.intersection(pointsToFlag)
             
-            if case let .number(n) = board.get(point), intersection.count == n {
+            if case let .digit(n) = board.get(point), intersection.count == n {
                 let unrevealedNeighbors = neighbors.filter { board.get($0).isUnrevealed() }
                 let toReveal = unrevealedNeighbors.subtracting(pointsToFlag)
                 
