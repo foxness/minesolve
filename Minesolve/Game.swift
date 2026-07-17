@@ -278,6 +278,10 @@ struct Game {
         
         let unrevealedCount = board.allPoints.count { board.state($0) != .revealed }
         if unrevealedCount == mines {
+            board.allPoints.filter { board.state($0) == .unrevealed }.forEach {
+                board.set(state: .flagged, at: $0)
+            }
+            
             state = .win
             print("You win!")
         }
