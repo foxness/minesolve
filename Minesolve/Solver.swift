@@ -82,19 +82,11 @@ struct Solver {
             return isTouchingUncertain
         }
         
-        let islands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
-//        print("Islands found: \(islands.count)")
-//        for island in islands {
-//            print(island)
-//        }
+        let pseudoIslands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
+        let digitIslands = mergeIntoTrueIslands(pseudoIslands: pseudoIslands, uncertain: uncertain)
+        print("Islands: \(digitIslands.count)")
         
-        let trueDigitIslands = mergeIntoTrueIslands(pseudoIslands: islands, uncertain: uncertain)
-        print("True islands: \(trueDigitIslands.count)")
-//        for island in trueDigitIslands {
-//            print(island)
-//        }
-        
-        let uncertainIslands = trueDigitIslands
+        let uncertainIslands = digitIslands
             .map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
             .sorted { $0.count < $1.count }
         
@@ -135,10 +127,6 @@ struct Solver {
         }
         
         let sortedProbabilities = mineProbabilities.map { (key, value) in (key, value) }.sorted { $0.1 < $1.1 }
-//        for p in sortedProbabilities.reversed() {
-//            print("\(p.0): \(String(format: "%.2f", p.1))")
-//        }
-        
         let safePoints = Set(sortedProbabilities.filter { (key, value) in value == 0 }.map(\.0))
         print("Safe: \(safePoints)")
         
@@ -163,29 +151,29 @@ struct Solver {
         island.forEach { current.updateValue(nil, forKey: $0) }
 
         let digits = adjustedDigits(island: island, board: board, primitiveFlagged: primitiveFlagged)
-        solve(current: current, digits: digits, depth: 0, solutions: &solutions)
+        solve(current: current, last: nil, digits: digits, depth: 0, solutions: &solutions)
         
         return solutions
     }
     
-    private func solve(current: [Point: Bool?], digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
-//        print("Depth: \(depth)")
-        
+    private func solve(current: [Point: Bool?], last: Point?, digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
         let solved = current.keys.filter { current[$0]! != nil }
-//        print("solved: \(solved)")
 
-        for (point, value) in digits {
-            let neighbors = Set(util.adjacent(to: point)).intersection(current.keys)
-            let unsolvedNeighbors = neighbors.subtracting(solved)
-//            print("neighbors: \(neighbors), unsolvedNeighbors: \(unsolvedNeighbors)")
-            if !unsolvedNeighbors.isEmpty {
-                continue
-            }
-            
-            let mineCount = neighbors.compactMap { current[$0]! }.count { $0 }
-            if value != mineCount {
-//                print("Found mismatch at \(point), value is \(value) but mineCount is \(mineCount), returning...")
-                return
+        if let last {
+            let digitsToCheck = Set(util.adjacent(to: last)).intersection(digits.keys)
+            for point in digitsToCheck {
+                let digitValue = digits[point]!
+                
+                let neighbors = Set(util.adjacent(to: point)).intersection(current.keys)
+                let unsolvedNeighbors = neighbors.subtracting(solved)
+                if !unsolvedNeighbors.isEmpty {
+                    continue
+                }
+                
+                let mineCount = neighbors.compactMap { current[$0]! }.count { $0 }
+                if digitValue != mineCount {
+                    return
+                }
             }
         }
         
@@ -204,10 +192,10 @@ struct Solver {
         var newCurrent = current
         
         newCurrent[pointToSolve] = false
-        solve(current: newCurrent, digits: digits, depth: depth + 1, solutions: &solutions)
+        solve(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
         
         newCurrent[pointToSolve] = true
-        solve(current: newCurrent, digits: digits, depth: depth + 1, solutions: &solutions)
+        solve(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
     }
     
     private func adjustedDigits(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [Point: Int] {
