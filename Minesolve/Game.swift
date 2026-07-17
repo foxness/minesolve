@@ -9,9 +9,9 @@ struct Game {
     
     // MARK: - Constants
     
-    let width = 9
-    let height = 9
-    let mines = 20
+    let width = 30
+    let height = 16
+    let mines = 99
     let easyMode = true
     
     // MARK: - Properties

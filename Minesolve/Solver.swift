@@ -5,6 +5,13 @@
 //  Created by River Deem on 2026-07-15.
 //
 
+// todo:
+// - only check digit validity of the point you're currently solving
+// - infer dark island
+// - store digit neighbors to not recalculate them
+// - parallelize islands between threads
+// - parallelize depth zero fork
+
 import Foundation
 struct Solver {
     
@@ -87,7 +94,10 @@ struct Solver {
 //            print(island)
 //        }
         
-        let uncertainIslands = trueDigitIslands.map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
+        let uncertainIslands = trueDigitIslands
+            .map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
+            .sorted { $0.count < $1.count }
+        
         var setOfIslandSolutions: [[[Point: Bool]]] = []
         for island in uncertainIslands {
             print("Solving island of \(island.count)")
