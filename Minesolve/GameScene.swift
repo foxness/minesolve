@@ -19,9 +19,9 @@ class GameScene: SKScene {
     private var stateNode: SKLabelNode? = nil
     private var mineCountNode: SKLabelNode? = nil
 
-    private var isGameOver = false
     private var leftMouseDown = false
     private var rightMouseDown = false
+    private var isSolving = false
     
     let localCamera = SKCameraNode()
     var game = Game()
@@ -122,12 +122,16 @@ class GameScene: SKScene {
     }
     
     func drawState() {
-        let text: String
+        var text: String
         switch game.state {
         case .uninitialized: text = "Uninitialized"
         case .ongoing: text = "Ongoing"
         case .loss: text = "Loss"
         case .win: text = "Win"
+        }
+        
+        if isSolving {
+            text = "Solving..."
         }
         
         if stateNode == nil {
@@ -152,7 +156,7 @@ class GameScene: SKScene {
         guard let stateNode else { return }
         
         stateNode.text = text
-        stateNode.isHidden = game.state == .ongoing
+        stateNode.isHidden = game.state == .ongoing && !isSolving
     }
     
     func drawMineCount() {
@@ -228,14 +232,16 @@ class GameScene: SKScene {
         let resultY = Int(round((-pos.y + origin.y) / squareSize))
         let point = Point(x: resultX, y: resultY)
         
-        if right && leftMouseDown || !right && rightMouseDown {
-            leftMouseDown = false
-            rightMouseDown = false
-            game.revealMany(point: point)
-        } else if right {
-            game.toggleFlag(point: point)
-        } else {
-            game.reveal(point: point)
+        if !isSolving {
+            if right && leftMouseDown || !right && rightMouseDown {
+                leftMouseDown = false
+                rightMouseDown = false
+                game.revealMany(point: point)
+            } else if right {
+                game.toggleFlag(point: point)
+            } else {
+                game.reveal(point: point)
+            }
         }
         
         drawGame()
@@ -262,7 +268,8 @@ class GameScene: SKScene {
     }
     
     override func keyDown(with event: NSEvent) {
-        if event.isARepeat { return }
+        guard !event.isARepeat else { return }
+        guard !isSolving else { return }
         
         switch event.keyCode {
         case 2: // D
@@ -275,34 +282,46 @@ class GameScene: SKScene {
                 }
             }
         case 17: // T
+            isSolving = true
+            drawState()
+            
             DispatchQueue.global().async { [weak self] in
                 guard let self else { return }
                 self.game.primitiveSolve()
+                self.isSolving = false
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     self.drawGame()
                 }
             }
         case 5: // G
+            isSolving = true
+            drawState()
+            
             DispatchQueue.global().async { [weak self] in
                 guard let self else { return }
                 self.game.primitiveSolveStep()
+                self.isSolving = false
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     self.drawGame()
                 }
             }
         case 3: // F
+            isSolving = true
+            drawState()
+            
             DispatchQueue.global().async { [weak self] in
                 guard let self else { return }
                 self.game.solveStep()
+                self.isSolving = false
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     self.drawGame()
                 }
             }
         case 9: // C
-            loopify()
+            solveLoop()
         case 0x31:
             break
 //            if let label = self.label {
@@ -318,12 +337,16 @@ class GameScene: SKScene {
         // Called before each frame is rendered
     }
     
-    func loopify() {
+    func solveLoop() {
+        isSolving = true
+        drawState()
+        
         DispatchQueue.global().async { [weak self] in
             guard let self else { return }
             
             while true {
                 if self.game.state != .ongoing {
+                    isSolving = false
                     break
                 }
                 
