@@ -11,6 +11,8 @@
 // - store digit neighbors to not recalculate them
 // - parallelize islands between threads
 // - parallelize depth zero fork
+// - remember flags from complex solutions in solver instead of
+//       assuming that flags are correct
 
 import Foundation
 struct Solver {
@@ -19,6 +21,8 @@ struct Solver {
 
     let width: Int
     let height: Int
+    
+    let assumeFlagsAreCorrect = true
     
     // MARK: - Private properties
     
@@ -47,8 +51,14 @@ struct Solver {
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
         }
         
+        var flagged = primitiveFlagged
+        if assumeFlagsAreCorrect {
+            let flaggedPoints = board.allPoints.filter { board.get($0) == .flagged }
+            flagged.formUnion(flaggedPoints)
+        }
+        
         print("Complex solving...")
-        return solveIslands(board: board, primitiveFlagged: primitiveFlagged)
+        return solveIslands(board: board, flagged: flagged)
     }
 
     func primitiveSolveStep(board: RenderedBoard) -> SolveResult {
@@ -60,11 +70,11 @@ struct Solver {
     
     // MARK: - Private methods
     
-    private func solveIslands(board: RenderedBoard, primitiveFlagged: Set<Point>) -> SolveResult {
+    private func solveIslands(board: RenderedBoard, flagged: Set<Point>) -> SolveResult {
         var darkPoints: Set<Point> = [] // points that dont touch a digit
         
         let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
-        let uncertain = unrevealed.subtracting(primitiveFlagged)
+        let uncertain = unrevealed.subtracting(flagged)
         
         for point in uncertain {
             let neighbors = util.adjacent(to: point)
@@ -93,13 +103,13 @@ struct Solver {
         var setOfIslandSolutions: [[[Point: Bool]]] = []
         for island in uncertainIslands {
             print("Solving island of \(island.count)")
-            let oneIslandSolutions = solveOneIsland(island: island, board: board, primitiveFlagged: primitiveFlagged)
+            let oneIslandSolutions = solveOneIsland(island: island, board: board, flagged: flagged)
             print("Solutions: \(oneIslandSolutions.count)")
             
             setOfIslandSolutions.append(oneIslandSolutions)
         }
         
-        return formSolution(setOfIslandSolutions, primitiveFlagged: primitiveFlagged)
+        return formSolution(setOfIslandSolutions, primitiveFlagged: flagged)
     }
     
     private func formSolution(_ setOfIslandSolutions: [[[Point: Bool]]], primitiveFlagged: Set<Point>) -> SolveResult {
@@ -145,12 +155,12 @@ struct Solver {
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
-    private func solveOneIsland(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [[Point: Bool]] {
+    private func solveOneIsland(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [[Point: Bool]] {
         var solutions: [[Point: Bool]] = []
         var current: [Point: Bool?] = [:] // [coord: isMine?]
         island.forEach { current.updateValue(nil, forKey: $0) }
 
-        let digits = adjustedDigits(island: island, board: board, primitiveFlagged: primitiveFlagged)
+        let digits = adjustedDigits(island: island, board: board, flagged: flagged)
         solve(current: current, last: nil, digits: digits, depth: 0, solutions: &solutions)
         
         return solutions
@@ -198,7 +208,7 @@ struct Solver {
         solve(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
     }
     
-    private func adjustedDigits(island: Set<Point>, board: RenderedBoard, primitiveFlagged: Set<Point>) -> [Point: Int] {
+    private func adjustedDigits(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
         let digits = Set(island.flatMap { util.adjacent(to: $0) })
             .subtracting(island)
             .filter { board.get($0).isDigit() }
@@ -214,7 +224,7 @@ struct Solver {
                 fatalError()
             }
             
-            let adjacentFlags = Set(util.adjacent(to: digit)).intersection(primitiveFlagged)
+            let adjacentFlags = Set(util.adjacent(to: digit)).intersection(flagged)
             adjusted -= adjacentFlags.count
             
             result[digit] = adjusted
