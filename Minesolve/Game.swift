@@ -21,6 +21,11 @@ struct Game {
     
     private let solver: Solver
     private let util: Util
+    
+    var minesLeft: Int {
+        let flagCount = board.allPoints.count { board.state($0) == .flagged }
+        return mines - flagCount
+    }
 
     // MARK: - Init
 

@@ -17,6 +17,7 @@ class GameScene: SKScene {
     private var spinnyNode: SKShapeNode?
     private var boardNode: SKShapeNode? = nil
     private var stateNode: SKLabelNode? = nil
+    private var mineCountNode: SKLabelNode? = nil
 
     private var isGameOver = false
     private var leftMouseDown = false
@@ -67,6 +68,7 @@ class GameScene: SKScene {
     func drawGame() {
         drawBoard()
         drawState()
+        drawMineCount()
     }
     
     func drawBoard() {
@@ -142,7 +144,7 @@ class GameScene: SKScene {
             let y = boardHeight / 2 + margin
             
             newLabel.position = CGPoint(x: x, y: y)
-
+            
             self.stateNode = newLabel
             addChild(newLabel)
         }
@@ -151,6 +153,33 @@ class GameScene: SKScene {
         
         stateNode.text = text
         stateNode.isHidden = game.state == .ongoing
+    }
+    
+    func drawMineCount() {
+        let text = "\(game.minesLeft)"
+        
+        if mineCountNode == nil {
+            let newLabel = SKLabelNode(text: text)
+            newLabel.fontName = "Monaco"
+            newLabel.fontSize = 50
+            newLabel.horizontalAlignmentMode = .right
+            newLabel.verticalAlignmentMode = .center
+            
+            let boardWidth = CGFloat(game.width) * squareSize
+            let boardHeight = CGFloat(game.height) * squareSize
+
+            let margin = squareSize
+            let x: CGFloat = boardWidth / 2
+            let y = boardHeight / 2 + margin
+            
+            newLabel.position = CGPoint(x: x, y: y)
+
+            self.mineCountNode = newLabel
+            addChild(newLabel)
+        }
+        
+        guard let mineCountNode else { return }
+        mineCountNode.text = text
     }
     
     func drawCenter() {
