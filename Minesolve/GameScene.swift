@@ -137,7 +137,7 @@ class GameScene: SKScene {
         if stateNode == nil {
             let newLabel = SKLabelNode(text: text)
             newLabel.fontName = "Monaco"
-            newLabel.fontSize = 50
+            newLabel.fontSize = 42
             newLabel.horizontalAlignmentMode = .center
             newLabel.verticalAlignmentMode = .center
             
@@ -165,7 +165,7 @@ class GameScene: SKScene {
         if mineCountNode == nil {
             let newLabel = SKLabelNode(text: text)
             newLabel.fontName = "Monaco"
-            newLabel.fontSize = 50
+            newLabel.fontSize = 42
             newLabel.horizontalAlignmentMode = .right
             newLabel.verticalAlignmentMode = .center
             

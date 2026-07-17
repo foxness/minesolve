@@ -13,8 +13,10 @@
 // - parallelize depth zero fork
 // - remember flags from complex solutions in solver instead of
 //       assuming that flags are correct
+// - try solving half of big islands to check for guaranteed flags/reveals
 
 import Foundation
+
 struct Solver {
     
     // MARK: - Constants
