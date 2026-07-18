@@ -14,6 +14,8 @@
 // - remember flags from complex solutions in solver instead of
 //       assuming that flags are correct
 // - try solving half of big islands to check for guaranteed flags/reveals
+// - apply heuristic: when you have to choose between
+//       revealing multiple cells reveal the one that has least uncertain neighbors?
 
 import Foundation
 
@@ -49,7 +51,11 @@ struct Solver {
         
         guard primitiveRevealed.isEmpty else {
             // return primitive
-            print("Primitive solution found")
+            
+            let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
+            let newFlags = primitiveFlagged.subtracting(preFlagged)
+            
+            print("Primitive solution found (flags: \(newFlags.count), reveals: \(primitiveRevealed.count))")
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
         }
         
@@ -73,19 +79,8 @@ struct Solver {
     // MARK: - Private methods
     
     private func solveIslands(board: RenderedBoard, flagged: Set<Point>) -> SolveResult {
-        var darkPoints: Set<Point> = [] // points that dont touch a digit
-        
         let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
         let uncertain = unrevealed.subtracting(flagged)
-        
-        for point in uncertain {
-            let neighbors = util.adjacent(to: point)
-            let isTouchingDigit = neighbors.contains { board.get($0).isDigit() }
-            
-            if !isTouchingDigit {
-                darkPoints.insert(point)
-            }
-        }
         
         let digits = Set(board.allPoints.filter { board.get($0).isDigit() })
         let lightDigits = digits.filter { digit in
@@ -111,16 +106,65 @@ struct Solver {
             setOfIslandSolutions.append(oneIslandSolutions)
         }
         
-        return formSolution(setOfIslandSolutions, primitiveFlagged: flagged)
+        let (darkIsland, maxDarkIslandMinesUsed) = solveDarkIsland(
+            board: board,
+            flagged: flagged,
+            uncertain: uncertain,
+            setOfIslandSolutions: setOfIslandSolutions
+        )
+        
+        return formSolution(setOfIslandSolutions, toFlag: flagged, darkIsland: darkIsland, maxDarkIslandMinesUsed: maxDarkIslandMinesUsed)
     }
     
-    private func formSolution(_ setOfIslandSolutions: [[[Point: Bool]]], primitiveFlagged: Set<Point>) -> SolveResult {
+    private func solveDarkIsland(
+        board: RenderedBoard,
+        flagged: Set<Point>,
+        uncertain: Set<Point>,
+        setOfIslandSolutions: [[[Point: Bool]]]
+    ) -> (Set<Point>, Int) {
+        
+        var darkIsland: Set<Point> = [] // points that dont touch a digit
+        for point in uncertain {
+            let neighbors = util.adjacent(to: point)
+            let isTouchingDigit = neighbors.contains { board.get($0).isDigit() }
+            
+            if !isTouchingDigit {
+                darkIsland.insert(point)
+            }
+        }
+        
+        var minTotalMinesUsed = 0
+        for oneIslandSolutions in setOfIslandSolutions {
+            let mineCounts = oneIslandSolutions.map { solution in solution.values.count { $0 } }
+            let minMineCount = mineCounts.min()!
+            minTotalMinesUsed += minMineCount
+        }
+        
+        let maxDarkIslandMinesUsed = board.mines - (flagged.count + minTotalMinesUsed)
+        return (darkIsland, maxDarkIslandMinesUsed)
+    }
+    
+    private func formSolution(
+        _ setOfIslandSolutions: [[[Point: Bool]]],
+        toFlag: Set<Point>,
+        darkIsland: Set<Point>,
+        maxDarkIslandMinesUsed: Int
+    ) -> SolveResult {
+        
         guard !setOfIslandSolutions.isEmpty else {
             return SolveResult(pointsToReveal: [], pointsToFlag: [])
         }
         
         var mineProbabilities: [Point: Double] = [:]
         
+        if !darkIsland.isEmpty {
+            let darkIslandMineProbability = Double(maxDarkIslandMinesUsed) / Double(darkIsland.count)
+            darkIsland.forEach { mineProbabilities[$0] = darkIslandMineProbability }
+            print("Dark island size: \(darkIsland.count), maxDarkIslandMinesUsed: \(maxDarkIslandMinesUsed), probability: \(darkIslandMineProbability)")
+        } else {
+            print("Dark island is empty")
+        }
+
         for oneIslandSolutions in setOfIslandSolutions {
             let island = oneIslandSolutions[0].keys
             var islandMineCounts: [Point: Int] = [:]
@@ -145,14 +189,20 @@ struct Solver {
         let pointsToReveal: Set<Point>
         if safePoints.isEmpty {
             let riskyPoint = sortedProbabilities.first!
-            print("Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.2f", riskyPoint.1))")
+            
+            var riskyString = "Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.2f", riskyPoint.1))"
+            if darkIsland.contains(riskyPoint.0) {
+                riskyString += " (from a dark island)"
+            }
+            
+            print(riskyString)
             pointsToReveal = [riskyPoint.0]
         } else {
             pointsToReveal = safePoints
         }
         
         let pointsToFlag = Set(sortedProbabilities.filter { (key, value) in value == 1 }.map(\.0))
-            .union(primitiveFlagged)
+            .union(toFlag)
 
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
