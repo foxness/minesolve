@@ -65,7 +65,6 @@ struct Solver {
             flagged.formUnion(flaggedPoints)
         }
         
-        print("Complex solving...")
         return solveIslands(board: board, flagged: flagged)
     }
 
@@ -106,14 +105,20 @@ struct Solver {
             setOfIslandSolutions.append(oneIslandSolutions)
         }
         
-        let (darkIsland, maxDarkIslandMinesUsed) = solveDarkIsland(
+        let (darkIsland, minDarkIslandMines, maxDarkIslandMines) = solveDarkIsland(
             board: board,
             flagged: flagged,
             uncertain: uncertain,
             setOfIslandSolutions: setOfIslandSolutions
         )
         
-        return formSolution(setOfIslandSolutions, toFlag: flagged, darkIsland: darkIsland, maxDarkIslandMinesUsed: maxDarkIslandMinesUsed)
+        return formSolution(
+            setOfIslandSolutions,
+            toFlag: flagged,
+            darkIsland: darkIsland,
+            minDarkIslandMines: minDarkIslandMines,
+            maxDarkIslandMines: maxDarkIslandMines
+        )
     }
     
     private func solveDarkIsland(
@@ -121,7 +126,7 @@ struct Solver {
         flagged: Set<Point>,
         uncertain: Set<Point>,
         setOfIslandSolutions: [[[Point: Bool]]]
-    ) -> (Set<Point>, Int) {
+    ) -> (Set<Point>, Int, Int) {
         
         var darkIsland: Set<Point> = [] // points that dont touch a digit
         for point in uncertain {
@@ -133,22 +138,28 @@ struct Solver {
             }
         }
         
-        var minTotalMinesUsed = 0
+        var minTotalMines = 0
+        var maxTotalMines = 0
         for oneIslandSolutions in setOfIslandSolutions {
             let mineCounts = oneIslandSolutions.map { solution in solution.values.count { $0 } }
-            let minMineCount = mineCounts.min()!
-            minTotalMinesUsed += minMineCount
+            
+            minTotalMines += mineCounts.min()!
+            maxTotalMines += mineCounts.max()!
         }
         
-        let maxDarkIslandMinesUsed = board.mines - (flagged.count + minTotalMinesUsed)
-        return (darkIsland, maxDarkIslandMinesUsed)
+        // sometimes this is a negative number because we arent using board mine counts in solving islands yet
+        let minDarkIslandMines = board.mines - (flagged.count + maxTotalMines)
+        
+        let maxDarkIslandMines = board.mines - (flagged.count + minTotalMines)
+        return (darkIsland, minDarkIslandMines, maxDarkIslandMines)
     }
     
     private func formSolution(
         _ setOfIslandSolutions: [[[Point: Bool]]],
         toFlag: Set<Point>,
         darkIsland: Set<Point>,
-        maxDarkIslandMinesUsed: Int
+        minDarkIslandMines: Int,
+        maxDarkIslandMines: Int
     ) -> SolveResult {
         
         guard !setOfIslandSolutions.isEmpty else {
@@ -158,9 +169,14 @@ struct Solver {
         var mineProbabilities: [Point: Double] = [:]
         
         if !darkIsland.isEmpty {
-            let darkIslandMineProbability = Double(maxDarkIslandMinesUsed) / Double(darkIsland.count)
-            darkIsland.forEach { mineProbabilities[$0] = darkIslandMineProbability }
-            print("Dark island size: \(darkIsland.count), maxDarkIslandMinesUsed: \(maxDarkIslandMinesUsed), probability: \(darkIslandMineProbability)")
+            let minDarkIslandProbability = Double(minDarkIslandMines) / Double(darkIsland.count)
+            let maxDarkIslandProbability = Double(maxDarkIslandMines) / Double(darkIsland.count)
+            
+            darkIsland.forEach { mineProbabilities[$0] = maxDarkIslandProbability }
+            
+            let minProbabilityString = String(format: "%.5f", minDarkIslandProbability)
+            let maxProbabilityString = String(format: "%.5f", maxDarkIslandProbability)
+            print("Dark island size: \(darkIsland.count), min: \(minDarkIslandMines) (\(minProbabilityString)), max: \(maxDarkIslandMines) (\(maxProbabilityString))")
         } else {
             print("Dark island is empty")
         }
@@ -184,13 +200,20 @@ struct Solver {
         
         let sortedProbabilities = mineProbabilities.map { (key, value) in (key, value) }.sorted { $0.1 < $1.1 }
         let safePoints = Set(sortedProbabilities.filter { (key, value) in value == 0 }.map(\.0))
-        print("Safe: \(safePoints)")
         
+        var safeString = "Found \(safePoints.count) safe"
+        let safeDarkIsland = darkIsland.intersection(safePoints)
+        if !safeDarkIsland.isEmpty {
+            safeString += " (\(safeDarkIsland) from dark island)"
+        }
+        
+        print(safeString)
+
         let pointsToReveal: Set<Point>
         if safePoints.isEmpty {
             let riskyPoint = sortedProbabilities.first!
             
-            var riskyString = "Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.2f", riskyPoint.1))"
+            var riskyString = "Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.5f", riskyPoint.1))"
             if darkIsland.contains(riskyPoint.0) {
                 riskyString += " (from a dark island)"
             }
@@ -201,8 +224,12 @@ struct Solver {
             pointsToReveal = safePoints
         }
         
-        let pointsToFlag = Set(sortedProbabilities.filter { (key, value) in value == 1 }.map(\.0))
+        var pointsToFlag = Set(sortedProbabilities.filter { (key, value) in value == 1 }.map(\.0))
             .union(toFlag)
+        
+        if minDarkIslandMines != maxDarkIslandMines {
+            pointsToFlag.subtract(darkIsland)
+        }
 
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
