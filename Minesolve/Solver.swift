@@ -148,7 +148,7 @@ struct Solver {
         }
         
         // sometimes this is a negative number because we arent using board mine counts in solving islands yet
-        let minDarkIslandMines = board.mines - (flagged.count + maxTotalMines)
+        let minDarkIslandMines = max(0, board.mines - (flagged.count + maxTotalMines))
         
         let maxDarkIslandMines = board.mines - (flagged.count + minTotalMines)
         return (darkIsland, minDarkIslandMines, maxDarkIslandMines)
@@ -204,7 +204,7 @@ struct Solver {
         var safeString = "Found \(safePoints.count) safe"
         let safeDarkIsland = darkIsland.intersection(safePoints)
         if !safeDarkIsland.isEmpty {
-            safeString += " (\(safeDarkIsland) from dark island)"
+            safeString += " (\(safeDarkIsland.count) from dark island)"
         }
         
         print(safeString)
