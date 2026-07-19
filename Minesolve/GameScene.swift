@@ -316,6 +316,8 @@ class GameScene: SKScene {
     }
     
     func solveLoop() {
+        guard !game.state.isOver() else { return }
+        
         isSolving = true
         drawState()
         

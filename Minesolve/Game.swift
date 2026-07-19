@@ -90,7 +90,7 @@ struct Game {
     }
     
     mutating func toggleFlag(point: Point) {
-        guard case .ongoing = state else { return }
+        guard !state.isOver() else { return }
         guard util.isValid(point: point) else { return }
         
         switch board.state(point) {
@@ -104,7 +104,7 @@ struct Game {
     }
 
     mutating func flag(point: Point) {
-        guard case .ongoing = state else { return }
+        guard !state.isOver() else { return }
         guard util.isValid(point: point) else { return }
 
         switch board.state(point) {
@@ -118,7 +118,8 @@ struct Game {
     }
     
     mutating func revealMany(point: Point) {
-        guard case .ongoing = state else { return }
+        guard !state.isOver() else { return }
+        
         guard util.isValid(point: point) else { return }
         guard board.state(point) == .revealed else { return }
         guard case .digit(let n) = board.cell(point) else { return }
@@ -136,8 +137,8 @@ struct Game {
     }
     
     mutating func primitiveSolveStep() {
-        guard case .ongoing = state else { return }
-        
+        guard !state.isOver() else { return }
+
         let rendered = board.render()
         let result = solver.primitiveSolveStep(board: rendered)
         
