@@ -54,7 +54,7 @@ struct Solver {
         
         guard primitiveRevealed.isEmpty && newFlags.isEmpty else {
             print("Primitive solution found (flags: \(newFlags.count), reveals: \(primitiveRevealed.count))")
-            return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
+            return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: newFlags)
         }
         
         var flagged = primitiveFlagged
