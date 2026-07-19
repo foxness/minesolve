@@ -49,12 +49,10 @@ struct Solver {
         let primitiveFlagged = primitiveSolve.pointsToFlag
         let primitiveRevealed = primitiveSolve.pointsToReveal
         
-        guard primitiveRevealed.isEmpty else {
-            // return primitive
-            
-            let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
-            let newFlags = primitiveFlagged.subtracting(preFlagged)
-            
+        let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
+        let newFlags = primitiveFlagged.subtracting(preFlagged)
+        
+        guard primitiveRevealed.isEmpty && newFlags.isEmpty else {
             print("Primitive solution found (flags: \(newFlags.count), reveals: \(primitiveRevealed.count))")
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
         }

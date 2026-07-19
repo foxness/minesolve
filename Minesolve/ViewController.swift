@@ -38,7 +38,7 @@ class ViewController: NSViewController, NSWindowDelegate {
     override func viewWillAppear() {
         super.viewWillAppear()
         
-        view.window!.setFrame(NSRect(x: 0, y: 0, width: 1280, height: 400), display: true)
+        view.window!.setFrame(NSRect(x: 0, y: 0, width: 1280, height: 720), display: true)
         view.window!.trueCenter()
         
         scene.drawGame()

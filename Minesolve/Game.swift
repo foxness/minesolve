@@ -11,8 +11,8 @@ struct Game {
     
     // MARK: - Constants
     
-    let width = 40
-    let height = 8
+    let width = 30
+    let height = 16
     let mines: Int
     let easyMode = true
     
