@@ -10,10 +10,10 @@ import GameplayKit
 
 class GameScene: SKScene {
     
-    let squareSize: CGFloat = 32
-    let fontRatio: CGFloat = 28 / 50
+    let squareSize: CGFloat = 20
+    let digitFontRatio: CGFloat = 28 / 50
+    let stateFontRatio: CGFloat = 1.5
 
-//    private var label : SKLabelNode?
     private var spinnyNode: SKShapeNode?
     private var boardNode: SKShapeNode? = nil
     private var stateNode: SKLabelNode? = nil
@@ -28,14 +28,6 @@ class GameScene: SKScene {
     let semaphore = DispatchSemaphore(value: 1)
     
     override func didMove(to view: SKView) {
-        
-        // Get label node from scene and store it for use later
-//        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-//        if let label = self.label {
-//            label.alpha = 0.0
-//            label.run(SKAction.fadeIn(withDuration: 2.0))
-//        }
-        
         // Create shape node to use during mouse interaction
         let w = (self.size.width + self.size.height) * 0.05
         self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
@@ -48,16 +40,8 @@ class GameScene: SKScene {
                                               SKAction.fadeOut(withDuration: 0.5),
                                               SKAction.removeFromParent()]))
         }
-        
-//        localCamera.yScale = -1
-//        localCamera.position = CGPoint(x: size.width/2, y: size.height/2)
-//        addChild(localCamera)
-//        self.camera = localCamera
-        
-        drawGame()
-        drawCenter()
     }
-    
+        
     func getOrigin() -> CGPoint {
         .init(
             x: -CGFloat(game.width) * squareSize / 2 + squareSize / 2,
@@ -108,7 +92,7 @@ class GameScene: SKScene {
                 
                 let label = SKLabelNode(text: "\(n)")
                 label.fontName = "Monaco"
-                label.fontSize = squareSize * fontRatio
+                label.fontSize = squareSize * digitFontRatio
                 label.horizontalAlignmentMode = .center
                 label.verticalAlignmentMode = .center
                 
@@ -137,7 +121,7 @@ class GameScene: SKScene {
         if stateNode == nil {
             let newLabel = SKLabelNode(text: text)
             newLabel.fontName = "Monaco"
-            newLabel.fontSize = 42
+            newLabel.fontSize = squareSize * stateFontRatio
             newLabel.horizontalAlignmentMode = .center
             newLabel.verticalAlignmentMode = .center
             
@@ -156,7 +140,7 @@ class GameScene: SKScene {
         guard let stateNode else { return }
         
         stateNode.text = text
-        stateNode.isHidden = game.state == .ongoing && !isSolving
+        stateNode.isHidden = (game.state == .ongoing || game.state == .uninitialized) && !isSolving
     }
     
     func drawMineCount() {
@@ -165,7 +149,7 @@ class GameScene: SKScene {
         if mineCountNode == nil {
             let newLabel = SKLabelNode(text: text)
             newLabel.fontName = "Monaco"
-            newLabel.fontSize = 42
+            newLabel.fontSize = squareSize * stateFontRatio
             newLabel.horizontalAlignmentMode = .right
             newLabel.verticalAlignmentMode = .center
             
@@ -184,12 +168,6 @@ class GameScene: SKScene {
         
         guard let mineCountNode else { return }
         mineCountNode.text = text
-    }
-    
-    func drawCenter() {
-        let center = SKShapeNode(rectOf: .init(width: 5, height: 5))
-        center.position = .zero
-        addChild(center)
     }
     
     func touchDown(atPoint pos: CGPoint, right: Bool = false) {
@@ -345,7 +323,7 @@ class GameScene: SKScene {
             guard let self else { return }
             
             while true {
-                if self.game.state != .ongoing {
+                if self.game.state.isOver() {
                     isSolving = false
                     break
                 }

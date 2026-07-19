@@ -10,4 +10,13 @@ enum GameState {
     case ongoing
     case win
     case loss
+    
+    func isOver() -> Bool {
+        switch self {
+        case .win, .loss:
+            return true
+        default:
+            return false
+        }
+    }
 }

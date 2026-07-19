@@ -9,9 +9,10 @@ import Cocoa
 import SpriteKit
 import GameplayKit
 
-class ViewController: NSViewController {
+class ViewController: NSViewController, NSWindowDelegate {
 
     @IBOutlet var skView: SKView!
+    var scene: GameScene!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,6 +25,7 @@ class ViewController: NSViewController {
                 
                 // Present the scene
                 view.presentScene(scene)
+                self.scene = scene as? GameScene
             }
             
             view.ignoresSiblingOrder = true
@@ -36,7 +38,10 @@ class ViewController: NSViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         
-        view.window?.trueCenter()
+        view.window!.setFrame(NSRect(x: 0, y: 0, width: 1280, height: 720), display: true)
+        view.window!.trueCenter()
+        
+        scene.drawGame()
     }
 }
 

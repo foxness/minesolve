@@ -5,13 +5,15 @@
 //  Created by River Deem on 2026-07-14.
 //
 
+import Foundation
+
 struct Game {
     
     // MARK: - Constants
     
-    let width = 30
-    let height = 20
-    let mines = 123
+    let width = 40
+    let height = 8
+    let mines: Int
     let easyMode = true
     
     // MARK: - Properties
@@ -30,8 +32,11 @@ struct Game {
     // MARK: - Init
 
     init() {
-        board = Board(width: width, height: height, mines: mines)
+        let mineDensity: Double = 99 / (30 * 16)
+        mines = Int(round(mineDensity * (Double(width) * Double(height))))
         
+        board = Board(width: width, height: height, mines: mines)
+
         solver = Solver(width: width, height: height)
         util = Util(width: width, height: height)
     }
@@ -169,6 +174,16 @@ struct Game {
     }
     
     mutating func solveStep() {
+        if case .uninitialized = state {
+            let x = Int.random(in: 0..<width)
+            let y = Int.random(in: 0..<height)
+            let point = Point(x: x, y: y)
+            
+            print("No cells to solve, starting at random point \(point)")
+            reveal(point: point)
+            return
+        }
+        
         guard case .ongoing = state else { return }
         
         let rendered = board.render()
