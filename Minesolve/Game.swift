@@ -21,7 +21,7 @@ struct Game {
     private var board: Board
     var state: GameState = .uninitialized
     
-    private let solver: Solver
+    private var solver: Solver
     private let util: Util
     
     var minesLeft: Int {
@@ -50,6 +50,8 @@ struct Game {
             board.set(cell: .empty, at: point)
             board.set(state: .unrevealed, at: point)
         }
+        
+        solver.newGame()
     }
     
     mutating func reveal(point: Point) {

@@ -23,11 +23,14 @@ import Foundation
 struct Solver {
     
     // MARK: - Constants
-
+    
     let width: Int
     let height: Int
     
-    let assumeFlagsAreCorrect = true
+    // assume all placed flags are correct
+    let assumeNoHuman = true
+    
+    var islandSolutions: [Island: [[Point: Bool]]] = [:]
     
     // MARK: - Private properties
     
@@ -44,7 +47,11 @@ struct Solver {
     
     // MARK: - Public methods
     
-    func solve(board: RenderedBoard) -> SolveResult {
+    mutating func newGame() {
+        islandSolutions.removeAll()
+    }
+    
+    mutating func solve(board: RenderedBoard) -> SolveResult {
         let primitiveSolve = primitiveSolveStep(board: board)
         
         let primitiveFlagged = primitiveSolve.pointsToFlag
@@ -59,7 +66,7 @@ struct Solver {
         }
         
         var flagged = primitiveFlagged
-        if assumeFlagsAreCorrect {
+        if assumeNoHuman {
             flagged.formUnion(preFlagged)
         }
         
@@ -75,7 +82,7 @@ struct Solver {
     
     // MARK: - Private methods
     
-    private func solveIslands(board: RenderedBoard, flagged: Set<Point>) -> SolveResult {
+    private mutating func solveIslands(board: RenderedBoard, flagged: Set<Point>) -> SolveResult {
         let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
         let uncertain = unrevealed.subtracting(flagged)
         
@@ -96,9 +103,19 @@ struct Solver {
         
         var setOfIslandSolutions: [[[Point: Bool]]] = []
         for island in uncertainIslands {
+            let islandDigits = Set(island.flatMap { util.adjacent(to: $0) }).intersection(digits)
+            let islandDefinition = Island(uncertain: island, digits: islandDigits)
+            
+            if let solutions = islandSolutions[islandDefinition] {
+                print("Found an already solved island of \(island.count)")
+                setOfIslandSolutions.append(solutions)
+                continue
+            }
+            
             print("Solving island of \(island.count)")
             let oneIslandSolutions = solveOneIsland(island: island, board: board, flagged: flagged)
             print("Solutions: \(oneIslandSolutions.count)")
+            islandSolutions[islandDefinition] = oneIslandSolutions
             
             setOfIslandSolutions.append(oneIslandSolutions)
         }
@@ -225,6 +242,8 @@ struct Solver {
             pointsToFlag.subtract(darkIsland)
         }
 
+        print("Flagging \(pointsToFlag.count), revealing: \(pointsToReveal.count)")
+        print("Revealing: \(pointsToReveal)")
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
@@ -407,7 +426,7 @@ struct Solver {
         var digitsToReveal: Set<Point> = []
         
         var flagged = pointsToFlag
-        if assumeFlagsAreCorrect {
+        if assumeNoHuman {
             let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
             flagged.formUnion(preFlagged)
         }
@@ -442,4 +461,9 @@ struct Solver {
 struct SolveResult {
     let pointsToReveal: Set<Point>
     let pointsToFlag: Set<Point>
+}
+
+struct Island: Hashable {
+    let uncertain: Set<Point>
+    let digits: Set<Point>
 }
