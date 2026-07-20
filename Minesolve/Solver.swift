@@ -102,11 +102,15 @@ struct Solver {
             .sorted { $0.count < $1.count }
         
         var setOfIslandSolutions: [[[Point: Bool]]] = []
+        var islandsToKeep: Set<Island> = []
+        
         for island in uncertainIslands {
             let islandDigits = Set(island.flatMap { util.adjacent(to: $0) }).intersection(digits)
-            let islandDefinition = Island(uncertain: island, digits: islandDigits)
+            let definition = Island(uncertain: island, digits: islandDigits)
             
-            if let solutions = islandSolutions[islandDefinition] {
+            if let solutions = islandSolutions[definition] {
+                islandsToKeep.insert(definition)
+                
                 print("Found an already solved island of \(island.count)")
                 setOfIslandSolutions.append(solutions)
                 continue
@@ -115,10 +119,15 @@ struct Solver {
             print("Solving island of \(island.count)")
             let oneIslandSolutions = solveOneIsland(island: island, board: board, flagged: flagged)
             print("Solutions: \(oneIslandSolutions.count)")
-            islandSolutions[islandDefinition] = oneIslandSolutions
+            
+            islandSolutions[definition] = oneIslandSolutions
+            islandsToKeep.insert(definition)
             
             setOfIslandSolutions.append(oneIslandSolutions)
         }
+        
+        print("Forgetting solutions of \(islandSolutions.keys.count - islandsToKeep.count) islands")
+        islandSolutions = islandSolutions.filter { key, value in islandsToKeep.contains(key) }
         
         let (darkIsland, minDarkIslandMines, maxDarkIslandMines) = solveDarkIsland(
             board: board,
