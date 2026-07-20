@@ -30,7 +30,7 @@ struct Solver {
     // assume all placed flags are correct
     let assumeNoHuman = true
     
-    var islandSolutions: [Island: [[Point: Bool]]] = [:]
+    var setsOfIslandSolutions: [Island: [[Point: Bool]]] = [:]
     
     // MARK: - Private properties
     
@@ -48,7 +48,7 @@ struct Solver {
     // MARK: - Public methods
     
     mutating func newGame() {
-        islandSolutions.removeAll()
+        setsOfIslandSolutions.removeAll()
     }
     
     mutating func solve(board: RenderedBoard) -> SolveResult {
@@ -101,43 +101,43 @@ struct Solver {
             .map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
             .sorted { $0.count < $1.count }
         
-        var setOfIslandSolutions: [[[Point: Bool]]] = []
+        var currentSetsOfSolutions: [[[Point: Bool]]] = []
         var islandsToKeep: Set<Island> = []
         
         for island in uncertainIslands {
             let islandDigits = Set(island.flatMap { util.adjacent(to: $0) }).intersection(digits)
             let definition = Island(uncertain: island, digits: islandDigits)
             
-            if let solutions = islandSolutions[definition] {
+            if let setOfSolutions = setsOfIslandSolutions[definition] {
                 islandsToKeep.insert(definition)
                 
                 print("Found an already solved island of \(island.count)")
-                setOfIslandSolutions.append(solutions)
+                currentSetsOfSolutions.append(setOfSolutions)
                 continue
             }
             
             print("Solving island of \(island.count)")
-            let oneIslandSolutions = solveOneIsland(island: island, board: board, flagged: flagged)
-            print("Solutions: \(oneIslandSolutions.count)")
+            let setOfSolutions = solveIsland(island: island, board: board, flagged: flagged)
+            print("Solutions: \(setOfSolutions.count)")
             
-            islandSolutions[definition] = oneIslandSolutions
+            setsOfIslandSolutions[definition] = setOfSolutions
             islandsToKeep.insert(definition)
             
-            setOfIslandSolutions.append(oneIslandSolutions)
+            currentSetsOfSolutions.append(setOfSolutions)
         }
         
-        print("Forgetting solutions of \(islandSolutions.keys.count - islandsToKeep.count) islands")
-        islandSolutions = islandSolutions.filter { key, value in islandsToKeep.contains(key) }
+        print("Forgetting solutions of \(setsOfIslandSolutions.keys.count - islandsToKeep.count) islands")
+        setsOfIslandSolutions = setsOfIslandSolutions.filter { key, value in islandsToKeep.contains(key) }
         
         let (darkIsland, minDarkIslandMines, maxDarkIslandMines) = solveDarkIsland(
             board: board,
             flagged: flagged,
             uncertain: uncertain,
-            setOfIslandSolutions: setOfIslandSolutions
+            currentSetsOfSolutions: currentSetsOfSolutions
         )
         
         return formSolution(
-            setOfIslandSolutions,
+            currentSetsOfSolutions,
             toFlag: flagged,
             darkIsland: darkIsland,
             minDarkIslandMines: minDarkIslandMines,
@@ -149,7 +149,7 @@ struct Solver {
         board: RenderedBoard,
         flagged: Set<Point>,
         uncertain: Set<Point>,
-        setOfIslandSolutions: [[[Point: Bool]]]
+        currentSetsOfSolutions: [[[Point: Bool]]]
     ) -> (Set<Point>, Int, Int) {
         
         var darkIsland: Set<Point> = [] // points that dont touch a digit
@@ -164,8 +164,8 @@ struct Solver {
         
         var minTotalMines = 0
         var maxTotalMines = 0
-        for oneIslandSolutions in setOfIslandSolutions {
-            let mineCounts = oneIslandSolutions.map { solution in solution.values.count { $0 } }
+        for setOfSolutions in currentSetsOfSolutions {
+            let mineCounts = setOfSolutions.map { solution in solution.values.count { $0 } }
             
             minTotalMines += mineCounts.min()!
             maxTotalMines += mineCounts.max()!
@@ -256,18 +256,18 @@ struct Solver {
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
-    private func solveOneIsland(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [[Point: Bool]] {
-        var solutions: [[Point: Bool]] = []
+    private func solveIsland(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [[Point: Bool]] {
+        var setOfSolutions: [[Point: Bool]] = []
         var current: [Point: Bool?] = [:] // [coord: isMine?]
         island.forEach { current.updateValue(nil, forKey: $0) }
 
         let digits = adjustedDigits(island: island, board: board, flagged: flagged)
-        solve(current: current, last: nil, digits: digits, depth: 0, solutions: &solutions)
+        depthSolveIsland(current: current, last: nil, digits: digits, depth: 0, solutions: &setOfSolutions)
         
-        return solutions
+        return setOfSolutions
     }
     
-    private func solve(current: [Point: Bool?], last: Point?, digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
+    private func depthSolveIsland(current: [Point: Bool?], last: Point?, digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
         let solved = current.keys.filter { current[$0]! != nil }
 
         if let last {
@@ -303,10 +303,10 @@ struct Solver {
         var newCurrent = current
         
         newCurrent[pointToSolve] = false
-        solve(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
+        depthSolveIsland(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
         
         newCurrent[pointToSolve] = true
-        solve(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
+        depthSolveIsland(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
     }
     
     private func adjustedDigits(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
