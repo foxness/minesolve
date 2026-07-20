@@ -173,8 +173,8 @@ struct Solver {
         
         // sometimes this is a negative number because we arent using board mine counts in solving islands yet
         let minDarkIslandMines = max(0, board.mines - (flagged.count + maxTotalMines))
+        let maxDarkIslandMines = min(darkIsland.count, board.mines - (flagged.count + minTotalMines))
         
-        let maxDarkIslandMines = board.mines - (flagged.count + minTotalMines)
         return (darkIsland, minDarkIslandMines, maxDarkIslandMines)
     }
     
