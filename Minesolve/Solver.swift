@@ -59,8 +59,7 @@ struct Solver {
         
         var flagged = primitiveFlagged
         if assumeFlagsAreCorrect {
-            let flaggedPoints = board.allPoints.filter { board.get($0) == .flagged }
-            flagged.formUnion(flaggedPoints)
+            flagged.formUnion(preFlagged)
         }
         
         return solveIslands(board: board, flagged: flagged)
@@ -408,13 +407,20 @@ struct Solver {
     
     private func primitiveReveal(board: RenderedBoard, pointsToFlag: Set<Point>) -> Set<Point> {
         var pointsToReveal: Set<Point> = []
-        var neighborsOfFlagged: Set<Point> = []
-        for point in pointsToFlag {
-            let digitNeighbors = util.adjacent(to: point).filter { board.get($0).isDigit() }
-            neighborsOfFlagged.formUnion(digitNeighbors)
+        var digitsToReveal: Set<Point> = []
+        
+        var flagged = pointsToFlag
+        if assumeFlagsAreCorrect {
+            let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
+            flagged.formUnion(preFlagged)
         }
         
-        for point in neighborsOfFlagged {
+        for point in flagged {
+            let digitNeighbors = util.adjacent(to: point).filter { board.get($0).isDigit() }
+            digitsToReveal.formUnion(digitNeighbors)
+        }
+        
+        for point in digitsToReveal {
             let neighbors = Set(util.adjacent(to: point))
             let intersection = neighbors.intersection(pointsToFlag)
             
