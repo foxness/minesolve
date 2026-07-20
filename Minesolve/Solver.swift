@@ -16,6 +16,7 @@
 // - try solving half of big islands to check for guaranteed flags/reveals
 // - apply heuristic: when you have to choose between
 //       revealing multiple cells reveal the one that has least uncertain neighbors?
+// - add double 1 at wall minisolve tactic
 
 import Foundation
 
@@ -158,10 +159,6 @@ struct Solver {
         minDarkIslandMines: Int,
         maxDarkIslandMines: Int
     ) -> SolveResult {
-        
-        guard !setOfIslandSolutions.isEmpty else {
-            return SolveResult(pointsToReveal: [], pointsToFlag: [])
-        }
         
         var mineProbabilities: [Point: Double] = [:]
         
