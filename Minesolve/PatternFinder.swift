@@ -39,7 +39,7 @@ struct PatternFinder {
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .certain],
             [.uncertain, .digit(1), .certain],
-            [.safe, .certain, .certain],
+            [.safe, .safe, .safe],
         ]
         
         patterns["Anticorner"] = [

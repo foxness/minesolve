@@ -14,9 +14,8 @@
 // - try solving half of big islands to check for guaranteed flags/reveals
 // - apply heuristic: when you have to choose between
 //       revealing multiple cells reveal the one that has least uncertain neighbors?
-// - add double 1 at wall minisolve tactic
 // - use board mine count for solving islands
-// - add finding antigate pattern
+// - add instant replay / last board keybind
 
 import Foundation
 
