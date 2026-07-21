@@ -32,6 +32,14 @@ struct PatternFinder {
             pointsToReveal.formUnion(antigateSafePoints)
         }
         
+        let (cornerCounts, cornerSafePoints) = findCornerPattern(in: board)
+        if !cornerSafePoints.isEmpty {
+            print("Found \(cornerCounts) corner patterns")
+            print("Safe corner pattern points: \(cornerSafePoints.count)")
+            
+            pointsToReveal.formUnion(cornerSafePoints)
+        }
+        
         return pointsToReveal
     }
 
@@ -39,8 +47,8 @@ struct PatternFinder {
         let gatePatternCells: [[PatternCell]] =
         [
             [.certain, .certain, .certain],
-            [.certain, .one, .certain],
-            [.uncertain, .one, .uncertain],
+            [.certain, .digit(1), .certain],
+            [.uncertain, .digit(1), .uncertain],
             [.safe, .safe, .safe],
         ]
         
@@ -49,16 +57,29 @@ struct PatternFinder {
     }
 
     func findAntigatePattern(in board: RenderedBoard) -> (Int, Set<Point>) {
-        let gatePatternCells: [[PatternCell]] =
+        let antigatePatternCells: [[PatternCell]] =
         [
             [.certain, .certain, .certain],
-            [.uncertain, .one, .uncertain],
-            [.certain, .one, .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .digit(1), .certain],
             [.safe, .safe, .safe],
         ]
         
-        let gatePattern = Pattern(cells: gatePatternCells)
-        return find(pattern: gatePattern, in: board)
+        let antigatePattern = Pattern(cells: antigatePatternCells)
+        return find(pattern: antigatePattern, in: board)
+    }
+    
+    func findCornerPattern(in board: RenderedBoard) -> (Int, Set<Point>) {
+        let cornerPatternCells: [[PatternCell]] =
+        [
+            [.safe, .uncertain, .uncertain, .certain],
+            [.uncertain, .digit(2), .digit(1), .certain],
+            [.uncertain, .digit(1), .certain, .certain],
+            [.certain, .certain, .certain, .any],
+        ]
+        
+        let cornerPattern = Pattern(cells: cornerPatternCells)
+        return find(pattern: cornerPattern, in: board)
     }
     
     // MARK: - Private methods
@@ -95,14 +116,16 @@ struct PatternFinder {
                         if uncertain.contains(boardPoint) {
                             isMatch = false
                         }
-                    case .one:
-                        if adjusted[boardPoint] != 1 {
+                    case .digit(let n):
+                        if adjusted[boardPoint] != n {
                             isMatch = false
                         }
                     case .safe:
                         if uncertain.contains(boardPoint) {
                             safePoints.insert(boardPoint)
                         }
+                    case .any:
+                        break
                     }
                     
                     if !isMatch {
@@ -151,8 +174,9 @@ struct PatternFinder {
 enum PatternCell {
     case uncertain
     case certain
-    case one // after adjusting digits
+    case digit(_ n: Int) // after adjusting digits
     case safe
+    case any
 }
 
 struct Pattern {
