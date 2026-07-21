@@ -145,16 +145,17 @@ struct PatternFinder {
         var isSafe = false
         var isMine = false
         
+        let isBoardCellUnrevealed = boardCell == .unrevealed
         switch patternCell {
         case .uncertain:
-            if boardCell != .unrevealed {
+            if !isBoardCellUnrevealed {
                 isMatch = false
             }
             
-//            isMatch = isMatch && (boardCell != .unrevealed)
+//            isMatch = isMatch && isBoardCellUnrevealed
             
         case .certain:
-            if boardCell == .unrevealed {
+            if isBoardCellUnrevealed {
                 isMatch = false
             }
             
@@ -164,12 +165,12 @@ struct PatternFinder {
             }
             
         case .safe:
-            if boardCell == .unrevealed {
+            if isBoardCellUnrevealed {
                 isSafe = true
             }
             
         case .mine:
-            if boardCell == .unrevealed {
+            if isBoardCellUnrevealed {
                 isMine = true
             }
             
