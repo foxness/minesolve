@@ -83,13 +83,25 @@ struct PatternFinder {
         var pointsToReveal: Set<Point> = []
         
         for permutation in pattern.allPermutations {
-            for point in board.allPoints {
-                let rightX = point.x + permutation.width - 1
-                let bottomY = point.y + permutation.height - 1
-                
-                guard rightX < board.width, bottomY < board.height else {
-                    continue
+            let leftmostX = 0 - permutation.width + 1
+            let topmostY = 0 - permutation.height + 1
+            let rightmostX = board.width - 1
+            let bottommostY = board.height - 1
+            
+            var pointsToCheck: Set<Point> = []
+            for y in topmostY...bottommostY {
+                for x in leftmostX...rightmostX {
+                    pointsToCheck.insert(.init(x: x, y: y))
                 }
+            }
+            
+            for point in pointsToCheck {
+//                let rightX = point.x + permutation.width - 1
+//                let bottomY = point.y + permutation.height - 1
+//                
+//                guard rightX < board.width, bottomY < board.height else {
+//                    continue
+//                }
                 
                 var isMatch = true
                 var safePoints: Set<Point> = []
@@ -98,9 +110,10 @@ struct PatternFinder {
                 for patternPoint in permutation.points {
                     let boardPoint = point + patternPoint
                     let patternCell = permutation.get(patternPoint)
+                    let boardCell = board.isInBounds(boardPoint) ? board.get(boardPoint) : nil
                     
                     let (isMatchingCell, isSafeCell, isMineCell) = match(
-                        boardCell: board.get(boardPoint),
+                        boardCell: boardCell,
                         patternCell: patternCell,
                         adjusted: adjusted[boardPoint]
                     )
@@ -115,6 +128,10 @@ struct PatternFinder {
                     } else if isMineCell {
                         minePoints.insert(boardPoint)
                     }
+                    
+//                    if !board.isInBounds(boardPoint) {
+//                        print("We were out of bounds and still found a match")
+//                    }
                 }
                 
                 if safePoints.isEmpty && minePoints.isEmpty {
@@ -136,7 +153,7 @@ struct PatternFinder {
     }
     
     private func match(
-        boardCell: RenderedCell,
+        boardCell: RenderedCell?,
         patternCell: PatternCell,
         adjusted: Int? = nil
     ) -> (isMatch: Bool, isSafe: Bool, isMine: Bool) {
@@ -144,6 +161,14 @@ struct PatternFinder {
         var isMatch = true
         var isSafe = false
         var isMine = false
+        
+        guard let boardCell else {
+            // nil boardCell means it is out of bounds
+            // it should count as certain
+            isMatch = patternCell == .any || patternCell == .certain
+
+            return (isMatch, isSafe, isMine)
+        }
         
         let isBoardCellUnrevealed = boardCell == .unrevealed
         switch patternCell {

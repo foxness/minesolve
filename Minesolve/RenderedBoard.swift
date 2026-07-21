@@ -40,6 +40,10 @@ struct RenderedBoard {
         board[point.y][point.x]
     }
     
+    func isInBounds(_ point: Point) -> Bool {
+        point.x >= 0 && point.x < width && point.y >= 0 && point.y < height
+    }
+    
     mutating func set(cell: RenderedCell, at point: Point) {
         board[point.y][point.x] = cell
     }
