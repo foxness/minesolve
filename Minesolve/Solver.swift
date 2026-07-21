@@ -67,10 +67,20 @@ struct Solver {
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: newFlags)
         }
         
-        let patternPointsToReveal = patternFinder.findPatterns(in: board)
-        guard patternPointsToReveal.isEmpty else {
-            print("Revealing \(patternPointsToReveal.count) pattern points: \(patternPointsToReveal)")
-            return SolveResult(pointsToReveal: patternPointsToReveal, pointsToFlag: [])
+        let patternSolveResult = patternFinder.findPatterns(in: board)
+        let patternFlagged = patternSolveResult.pointsToFlag
+        let patternRevealed = patternSolveResult.pointsToReveal
+        
+        guard patternFlagged.isEmpty && patternRevealed.isEmpty else {
+            if patternRevealed.count > 0 {
+                print("Revealing \(patternRevealed.count) pattern points: \(patternRevealed)")
+            }
+            
+            if patternFlagged.count > 0 {
+                print("Flagging \(patternFlagged.count) pattern points: \(patternFlagged)")
+            }
+            
+            return SolveResult(pointsToReveal: patternRevealed, pointsToFlag: patternFlagged)
         }
         
         var flagged = primitiveFlagged

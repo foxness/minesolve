@@ -11,85 +11,83 @@ struct PatternFinder {
     
     let util: Util
     
-    // MARK: - Methods
-    
-    func findPatterns(in board: RenderedBoard) -> Set<Point> {
-        var pointsToReveal: Set<Point> = []
+    var patterns: [String: [[PatternCell]]] {
+        var result: [String: [[PatternCell]]] = [:]
         
-        let (gateCounts, gateSafePoints) = findGatePattern(in: board)
-        if !gateSafePoints.isEmpty {
-            print("Found \(gateCounts) gate patterns")
-            print("Safe gate pattern points: \(gateSafePoints.count)")
-            
-            pointsToReveal.formUnion(gateSafePoints)
-        }
-        
-        let (antigateCounts, antigateSafePoints) = findAntigatePattern(in: board)
-        if !antigateSafePoints.isEmpty {
-            print("Found \(antigateCounts) antigate patterns")
-            print("Safe antigate pattern points: \(antigateSafePoints.count)")
-            
-            pointsToReveal.formUnion(antigateSafePoints)
-        }
-        
-        let (cornerCounts, cornerSafePoints) = findCornerPattern(in: board)
-        if !cornerSafePoints.isEmpty {
-            print("Found \(cornerCounts) corner patterns")
-            print("Safe corner pattern points: \(cornerSafePoints.count)")
-            
-            pointsToReveal.formUnion(cornerSafePoints)
-        }
-        
-        return pointsToReveal
-    }
-
-    func findGatePattern(in board: RenderedBoard) -> (Int, Set<Point>) {
-        let gatePatternCells: [[PatternCell]] =
-        [
+        result["Gate"] = [
             [.certain, .certain, .certain],
             [.certain, .digit(1), .certain],
             [.uncertain, .digit(1), .uncertain],
             [.safe, .safe, .safe],
         ]
         
-        let gatePattern = Pattern(cells: gatePatternCells)
-        return find(pattern: gatePattern, in: board)
-    }
-
-    func findAntigatePattern(in board: RenderedBoard) -> (Int, Set<Point>) {
-        let antigatePatternCells: [[PatternCell]] =
-        [
+        result["Antigate"] = [
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .uncertain],
             [.certain, .digit(1), .certain],
             [.safe, .safe, .safe],
         ]
         
-        let antigatePattern = Pattern(cells: antigatePatternCells)
-        return find(pattern: antigatePattern, in: board)
-    }
-    
-    func findCornerPattern(in board: RenderedBoard) -> (Int, Set<Point>) {
-        let cornerPatternCells: [[PatternCell]] =
-        [
+        result["Corner"] = [
             [.safe, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(2), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
             [.certain, .certain, .certain, .any],
         ]
         
-        let cornerPattern = Pattern(cells: cornerPatternCells)
-        return find(pattern: cornerPattern, in: board)
+        result["Outlet1"] = [
+            [.certain, .certain, .certain],
+            [.uncertain, .digit(1), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.safe, .certain, .certain],
+        ]
+        
+        result["Outlet2Mirrored"] = [
+            [.safe, .certain, .certain],
+            [.uncertain, .digit(1), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
+        result["Anticorner"] = [
+            [.mine, .uncertain, .uncertain, .certain],
+            [.uncertain, .digit(3), .digit(1), .certain],
+            [.uncertain, .digit(1), .certain, .certain],
+            [.certain, .certain, .certain, .any],
+        ]
+
+        return result
+    }
+    
+    // MARK: - Methods
+    
+    func findPatterns(in board: RenderedBoard) -> SolveResult {
+        var pointsToFlag: Set<Point> = []
+        var pointsToReveal: Set<Point> = []
+
+        for (name, cells) in patterns {
+            let pattern = Pattern(cells: cells)
+            let (findCount, solveResult) = find(pattern: pattern, in: board)
+
+            if findCount > 0 {
+                print("Found \(findCount) \(name) patterns")
+                pointsToFlag.formUnion(solveResult.pointsToFlag)
+                pointsToReveal.formUnion(solveResult.pointsToReveal)
+            }
+        }
+        
+        return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
     // MARK: - Private methods
     
-    func find(pattern: Pattern, in board: RenderedBoard) -> (Int, Set<Point>) {
+    func find(pattern: Pattern, in board: RenderedBoard) -> (Int, SolveResult) {
         let flagged = Set(board.allPoints.filter { board.get($0) == .flagged })
         let uncertain = board.allPoints.filter { board.get($0) == .unrevealed }
         let adjusted = adjustedDigits(board: board, flagged: flagged)
         
         var foundPoints: Set<Point> = []
+        var pointsToFlag: Set<Point> = []
         var pointsToReveal: Set<Point> = []
         
         for rotation in pattern.allRotations {
@@ -103,6 +101,8 @@ struct PatternFinder {
                 
                 var isMatch = true
                 var safePoints: Set<Point> = []
+                var minePoints: Set<Point> = []
+                
                 for patternPoint in rotation.points {
                     let boardPoint = point + patternPoint
                     let patternCell = rotation.get(patternPoint)
@@ -124,6 +124,10 @@ struct PatternFinder {
                         if uncertain.contains(boardPoint) {
                             safePoints.insert(boardPoint)
                         }
+                    case .mine:
+                        if uncertain.contains(boardPoint) {
+                            minePoints.insert(boardPoint)
+                        }
                     case .any:
                         break
                     }
@@ -133,18 +137,22 @@ struct PatternFinder {
                     }
                 }
                 
-                if safePoints.isEmpty {
+                if safePoints.isEmpty && minePoints.isEmpty {
                     isMatch = false
                 }
                 
                 if isMatch {
                     foundPoints.insert(point)
+                    pointsToFlag.formUnion(minePoints)
                     pointsToReveal.formUnion(safePoints)
                 }
             }
         }
         
-        return (foundPoints.count, pointsToReveal)
+        return (
+            foundPoints.count,
+            SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
+        )
     }
     
     private func adjustedDigits(board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
@@ -176,6 +184,7 @@ enum PatternCell {
     case certain
     case digit(_ n: Int) // after adjusting digits
     case safe
+    case mine
     case any
 }
 
