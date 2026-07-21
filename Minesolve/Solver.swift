@@ -67,9 +67,9 @@ struct Solver {
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: newFlags)
         }
         
-        let patternPointsToReveal = patternFinder.findGatePattern(in: board)
+        let patternPointsToReveal = patternFinder.findPatterns(in: board)
         guard patternPointsToReveal.isEmpty else {
-            print("!!!!!!!!! Revealing \(patternPointsToReveal.count) pattern points: \(patternPointsToReveal)")
+            print("Revealing \(patternPointsToReveal.count) pattern points: \(patternPointsToReveal)")
             return SolveResult(pointsToReveal: patternPointsToReveal, pointsToFlag: [])
         }
         
