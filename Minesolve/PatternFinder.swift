@@ -12,44 +12,51 @@ struct PatternFinder {
     let util: Util
     
     var patterns: [String: [[PatternCell]]] {
-        var result: [String: [[PatternCell]]] = [:]
+        var patterns: [String: [[PatternCell]]] = [:]
         
-        result["Gate"] = [
+        patterns["Gate"] = [
             [.certain, .certain, .certain],
             [.certain, .digit(1), .certain],
             [.uncertain, .digit(1), .uncertain],
             [.safe, .safe, .safe],
         ]
         
-        result["Antigate"] = [
+        patterns["Antigate"] = [
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .uncertain],
             [.certain, .digit(1), .certain],
             [.safe, .safe, .safe],
         ]
         
-        result["Corner"] = [
+        patterns["Corner"] = [
             [.safe, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(2), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
             [.certain, .certain, .certain, .any],
         ]
         
-        result["Outlet"] = [
+        patterns["Outlet"] = [
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .certain],
             [.uncertain, .digit(1), .certain],
             [.safe, .certain, .certain],
         ]
         
-        result["Anticorner"] = [
+        patterns["Anticorner"] = [
             [.mine, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(3), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
             [.certain, .certain, .certain, .any],
         ]
 
-        return result
+        patterns["Punch"] = [
+            [.mine, .certain, .certain],
+            [.uncertain, .digit(2), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
+        return patterns
     }
     
     // MARK: - Methods
@@ -128,10 +135,6 @@ struct PatternFinder {
                     } else if isMineCell {
                         minePoints.insert(boardPoint)
                     }
-                    
-//                    if !board.isInBounds(boardPoint) {
-//                        print("We were out of bounds and still found a match")
-//                    }
                 }
                 
                 if safePoints.isEmpty && minePoints.isEmpty {
