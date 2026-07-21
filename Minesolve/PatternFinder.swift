@@ -21,16 +21,37 @@ struct PatternFinder {
             [.safe, .safe, .safe],
         ]
         
-        patterns["Antigate"] = [
+        patterns["!!!!!! Antigate !!!!!!!"] = [
+            [.certain, .certain, .certain],
+            [.certain, .digit(1), .certain],
+            [.uncertain, .digit(4), .uncertain],
+            [.mine, .mine, .mine],
+        ]
+
+        patterns["Exit"] = [
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .uncertain],
             [.certain, .digit(1), .certain],
             [.safe, .safe, .safe],
         ]
         
+        patterns["Antiexit"] = [
+            [.certain, .certain, .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .digit(4), .certain],
+            [.mine, .mine, .mine],
+        ]
+
         patterns["Corner"] = [
             [.safe, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(2), .digit(1), .certain],
+            [.uncertain, .digit(1), .certain, .certain],
+            [.certain, .certain, .certain, .any],
+        ]
+        
+        patterns["Anticorner"] = [
+            [.mine, .uncertain, .uncertain, .certain],
+            [.uncertain, .digit(3), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
             [.certain, .certain, .certain, .any],
         ]
@@ -42,13 +63,13 @@ struct PatternFinder {
             [.safe, .safe, .safe],
         ]
         
-        patterns["Anticorner"] = [
-            [.mine, .uncertain, .uncertain, .certain],
-            [.uncertain, .digit(3), .digit(1), .certain],
-            [.uncertain, .digit(1), .certain, .certain],
-            [.certain, .certain, .certain, .any],
+        patterns["Antioutlet"] = [
+            [.certain, .certain, .certain],
+            [.uncertain, .digit(1), .certain],
+            [.uncertain, .digit(4), .certain],
+            [.mine, .mine, .mine],
         ]
-
+        
         patterns["Punch"] = [
             [.mine, .certain, .certain],
             [.uncertain, .digit(2), .certain],
@@ -56,6 +77,20 @@ struct PatternFinder {
             [.certain, .certain, .certain],
         ]
         
+        patterns["Softpunch"] = [
+            [.certain, .mine, .certain],
+            [.uncertain, .digit(2), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["Rarepunch"] = [ // quite rare
+            [.certain, .certain, .mine],
+            [.uncertain, .digit(2), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+
         return patterns
     }
     
