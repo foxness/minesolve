@@ -6,8 +6,6 @@
 //
 
 // todo:
-// - only check digit validity of the point you're currently solving
-// - infer dark island
 // - store digit neighbors to not recalculate them
 // - parallelize islands between threads
 // - parallelize depth zero fork
@@ -17,6 +15,8 @@
 // - apply heuristic: when you have to choose between
 //       revealing multiple cells reveal the one that has least uncertain neighbors?
 // - add double 1 at wall minisolve tactic
+// - use board mine count for solving islands
+// - add finding antigate pattern
 
 import Foundation
 
@@ -35,7 +35,8 @@ struct Solver {
     // MARK: - Private properties
     
     private let util: Util
-    
+    private let patternFinder: PatternFinder
+
     // MARK: - Init
     
     init(width: Int, height: Int) {
@@ -43,6 +44,7 @@ struct Solver {
         self.height = height
         
         self.util = Util(width: width, height: height)
+        self.patternFinder = PatternFinder(util: util)
     }
     
     // MARK: - Public methods
@@ -63,6 +65,12 @@ struct Solver {
         guard primitiveRevealed.isEmpty && newFlags.isEmpty else {
             print("Primitive solution found (flags: \(newFlags.count), reveals: \(primitiveRevealed.count))")
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: newFlags)
+        }
+        
+        let patternPointsToReveal = patternFinder.findGatePattern(in: board)
+        guard patternPointsToReveal.isEmpty else {
+            print("!!!!!!!!! Revealing \(patternPointsToReveal.count) pattern points: \(patternPointsToReveal)")
+            return SolveResult(pointsToReveal: patternPointsToReveal, pointsToFlag: [])
         }
         
         var flagged = primitiveFlagged
@@ -171,7 +179,6 @@ struct Solver {
             maxTotalMines += mineCounts.max()!
         }
         
-        // sometimes this is a negative number because we arent using board mine counts in solving islands yet
         let minDarkIslandMines = max(0, board.mines - (flagged.count + maxTotalMines))
         let maxDarkIslandMines = min(darkIsland.count, board.mines - (flagged.count + minTotalMines))
         
