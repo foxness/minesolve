@@ -21,7 +21,7 @@ struct PatternFinder {
             [.safe, .safe, .safe],
         ]
         
-        patterns["!!!!!! Antigate !!!!!!!"] = [
+        patterns["Antigate"] = [ // exceptionally rare
             [.certain, .certain, .certain],
             [.certain, .digit(1), .certain],
             [.uncertain, .digit(4), .uncertain],
@@ -42,14 +42,14 @@ struct PatternFinder {
             [.mine, .mine, .mine],
         ]
 
-        patterns["Corner"] = [
+        patterns["Arrow"] = [
             [.safe, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(2), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
             [.certain, .certain, .certain, .any],
         ]
         
-        patterns["Anticorner"] = [
+        patterns["Antiarrow"] = [
             [.mine, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(3), .digit(1), .certain],
             [.uncertain, .digit(1), .certain, .certain],
