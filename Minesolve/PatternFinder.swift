@@ -35,18 +35,11 @@ struct PatternFinder {
             [.certain, .certain, .certain, .any],
         ]
         
-        result["Outlet1"] = [
+        result["Outlet"] = [
             [.certain, .certain, .certain],
             [.uncertain, .digit(1), .certain],
             [.uncertain, .digit(1), .certain],
             [.safe, .certain, .certain],
-        ]
-        
-        result["Outlet2Mirrored"] = [
-            [.safe, .certain, .certain],
-            [.uncertain, .digit(1), .certain],
-            [.uncertain, .digit(1), .certain],
-            [.certain, .certain, .certain],
         ]
         
         result["Anticorner"] = [
@@ -90,10 +83,10 @@ struct PatternFinder {
         var pointsToFlag: Set<Point> = []
         var pointsToReveal: Set<Point> = []
         
-        for rotation in pattern.allRotations {
+        for permutation in pattern.allPermutations {
             for point in board.allPoints {
-                let rightX = point.x + rotation.width - 1
-                let bottomY = point.y + rotation.height - 1
+                let rightX = point.x + permutation.width - 1
+                let bottomY = point.y + permutation.height - 1
                 
                 guard rightX < board.width, bottomY < board.height else {
                     continue
@@ -103,9 +96,9 @@ struct PatternFinder {
                 var safePoints: Set<Point> = []
                 var minePoints: Set<Point> = []
                 
-                for patternPoint in rotation.points {
+                for patternPoint in permutation.points {
                     let boardPoint = point + patternPoint
-                    let patternCell = rotation.get(patternPoint)
+                    let patternCell = permutation.get(patternPoint)
                     
                     switch patternCell {
                     case .uncertain:
@@ -179,7 +172,7 @@ struct PatternFinder {
     }
 }
 
-enum PatternCell {
+enum PatternCell: Hashable {
     case uncertain
     case certain
     case digit(_ n: Int) // after adjusting digits
@@ -188,16 +181,12 @@ enum PatternCell {
     case any
 }
 
-struct Pattern {
+struct Pattern: Hashable {
+    
     let cells: [[PatternCell]]
     
-    var width: Int {
-        return cells[0].count
-    }
-    
-    var height: Int {
-        return cells.count
-    }
+    var width: Int { cells[0].count }
+    var height: Int { cells.count }
     
     var points: Set<Point> {
         var result: Set<Point> = []
@@ -212,7 +201,7 @@ struct Pattern {
         return result
     }
     
-    var rotated: Pattern {
+    var rotated: Self {
         let newWidth = height
         let newHeight = width
         
@@ -230,8 +219,27 @@ struct Pattern {
         return .init(cells: newCells)
     }
     
-    var allRotations: [Pattern] {
-        [self, self.rotated, self.rotated.rotated, self.rotated.rotated.rotated]
+    var mirrored: Self {
+        var newCells = cells
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let oldX = width - x - 1
+                let oldY = y
+                
+                newCells[y][x] = cells[oldY][oldX]
+            }
+        }
+        
+        return .init(cells: newCells)
+    }
+
+    var allRotations: [Self] {
+        Array(Set([self, self.rotated, self.rotated.rotated, self.rotated.rotated.rotated]))
+    }
+    
+    var allPermutations: [Self] {
+        Array(Set((allRotations + allRotations.map(\.mirrored))))
     }
     
     func get(_ point: Point) -> PatternCell {
