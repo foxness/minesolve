@@ -76,7 +76,6 @@ struct PatternFinder {
     
     func find(pattern: Pattern, in board: RenderedBoard) -> (Int, SolveResult) {
         let flagged = Set(board.allPoints.filter { board.get($0) == .flagged })
-        let uncertain = board.allPoints.filter { board.get($0) == .unrevealed }
         let adjusted = adjustedDigits(board: board, flagged: flagged)
         
         var foundPoints: Set<Point> = []
@@ -100,33 +99,21 @@ struct PatternFinder {
                     let boardPoint = point + patternPoint
                     let patternCell = permutation.get(patternPoint)
                     
-                    switch patternCell {
-                    case .uncertain:
-                        if !uncertain.contains(boardPoint) {
-                            isMatch = false
-                        }
-                    case .certain:
-                        if uncertain.contains(boardPoint) {
-                            isMatch = false
-                        }
-                    case .digit(let n):
-                        if adjusted[boardPoint] != n {
-                            isMatch = false
-                        }
-                    case .safe:
-                        if uncertain.contains(boardPoint) {
-                            safePoints.insert(boardPoint)
-                        }
-                    case .mine:
-                        if uncertain.contains(boardPoint) {
-                            minePoints.insert(boardPoint)
-                        }
-                    case .any:
+                    let (isMatchingCell, isSafeCell, isMineCell) = match(
+                        boardCell: board.get(boardPoint),
+                        patternCell: patternCell,
+                        adjusted: adjusted[boardPoint]
+                    )
+                    
+                    if !isMatchingCell {
+                        isMatch = false
                         break
                     }
                     
-                    if !isMatch {
-                        break
+                    if isSafeCell {
+                        safePoints.insert(boardPoint)
+                    } else if isMineCell {
+                        minePoints.insert(boardPoint)
                     }
                 }
                 
@@ -146,6 +133,51 @@ struct PatternFinder {
             foundPoints.count,
             SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
         )
+    }
+    
+    private func match(
+        boardCell: RenderedCell,
+        patternCell: PatternCell,
+        adjusted: Int? = nil
+    ) -> (isMatch: Bool, isSafe: Bool, isMine: Bool) {
+        
+        var isMatch = true
+        var isSafe = false
+        var isMine = false
+        
+        switch patternCell {
+        case .uncertain:
+            if boardCell != .unrevealed {
+                isMatch = false
+            }
+            
+//            isMatch = isMatch && (boardCell != .unrevealed)
+            
+        case .certain:
+            if boardCell == .unrevealed {
+                isMatch = false
+            }
+            
+        case .digit(let n):
+            if adjusted != n {
+                isMatch = false
+            }
+            
+        case .safe:
+            if boardCell == .unrevealed {
+                isSafe = true
+            }
+            
+        case .mine:
+            if boardCell == .unrevealed {
+                isMine = true
+            }
+            
+        case .any:
+            break
+        }
+        
+        return (isMatch, isSafe, isMine)
     }
     
     private func adjustedDigits(board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
