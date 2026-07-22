@@ -14,7 +14,6 @@
 // - try solving half of big islands to check for guaranteed flags/reveals
 // - apply heuristic: when you have to choose between
 //       revealing multiple cells reveal the one that has least uncertain neighbors?
-// - use board mine count for solving islands
 // - add instant replay / last board keybind
 
 import Foundation
@@ -283,13 +282,29 @@ struct Solver {
         var current: [Point: Bool?] = [:] // [coord: isMine?]
         island.forEach { current.updateValue(nil, forKey: $0) }
 
+        let minesLeft = board.mines - flagged.count
         let digits = adjustedDigits(island: island, board: board, flagged: flagged)
-        depthSolveIsland(current: current, last: nil, digits: digits, depth: 0, solutions: &setOfSolutions)
+        
+        depthSolveIsland(
+            current: current,
+            last: nil,
+            digits: digits,
+            minesLeft: minesLeft,
+            depth: 0,
+            solutions: &setOfSolutions
+        )
         
         return setOfSolutions
     }
     
-    private func depthSolveIsland(current: [Point: Bool?], last: Point?, digits: [Point: Int], depth: Int, solutions: inout [[Point: Bool]]) {
+    private func depthSolveIsland(
+        current: [Point: Bool?],
+        last: Point?,
+        digits: [Point: Int],
+        minesLeft: Int,
+        depth: Int,
+        solutions: inout [[Point: Bool]]
+    ) {
         let solved = current.keys.filter { current[$0]! != nil }
 
         if let last {
@@ -325,10 +340,29 @@ struct Solver {
         var newCurrent = current
         
         newCurrent[pointToSolve] = false
-        depthSolveIsland(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
+        depthSolveIsland(
+            current: newCurrent,
+            last: pointToSolve,
+            digits: digits,
+            minesLeft: minesLeft,
+            depth: depth + 1,
+            solutions: &solutions
+        )
+        
+        let newMinesLeft = minesLeft - 1
+        guard newMinesLeft >= 0 else {
+            return
+        }
         
         newCurrent[pointToSolve] = true
-        depthSolveIsland(current: newCurrent, last: pointToSolve, digits: digits, depth: depth + 1, solutions: &solutions)
+        depthSolveIsland(
+            current: newCurrent,
+            last: pointToSolve,
+            digits: digits,
+            minesLeft: newMinesLeft,
+            depth: depth + 1,
+            solutions: &solutions
+        )
     }
     
     private func adjustedDigits(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
