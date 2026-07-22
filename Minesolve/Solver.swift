@@ -70,7 +70,9 @@ struct Solver {
             return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: newFlags)
         }
         
-        let patternSolveResult = patternFinder.findPatterns(in: board)
+        let adjustedDigits = getAdjustedDigits(board: board, from: Set(boardDigits.keys))
+        let patternSolveResult = patternFinder.findPatterns(in: board, adjustedDigits: adjustedDigits)
+        
         let patternFlagged = patternSolveResult.pointsToFlag
         let patternRevealed = patternSolveResult.pointsToReveal
         
@@ -138,7 +140,7 @@ struct Solver {
             }
             
             print("Solving island of \(island.count)")
-            let setOfSolutions = solveIsland(island: island, board: board, flagged: flagged)
+            let setOfSolutions = solveIsland(island, board: board)
             print("Solutions: \(setOfSolutions.count)")
             
             setsOfIslandSolutions[definition] = setOfSolutions
@@ -287,18 +289,23 @@ struct Solver {
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
-    private func solveIsland(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [[Point: Bool]] {
+    private func solveIsland(_ island: Set<Point>, board: RenderedBoard) -> [[Point: Bool]] {
         var setOfSolutions: [[Point: Bool]] = []
+        
+        let minesLeft = board.mines - boardFlagged.count
+        let islandDigits = Set(island.flatMap { util.adjacent(to: $0) })
+            .subtracting(island)
+            .filter { board.get($0).isDigit() }
+        
+        let adjustedDigits = getAdjustedDigits(board: board, from: islandDigits)
+
         var current: [Point: Bool?] = [:] // [coord: isMine?]
         island.forEach { current.updateValue(nil, forKey: $0) }
-
-        let minesLeft = board.mines - flagged.count
-        let digits = adjustedDigits(island: island, board: board, flagged: flagged)
         
         depthSolveIsland(
             current: current,
             last: nil,
-            digits: digits,
+            digits: adjustedDigits,
             minesLeft: minesLeft,
             depth: 0,
             solutions: &setOfSolutions
@@ -375,31 +382,26 @@ struct Solver {
         )
     }
     
-    private func adjustedDigits(island: Set<Point>, board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
-        let digits = Set(island.flatMap { util.adjacent(to: $0) })
-            .subtracting(island)
-            .filter { board.get($0).isDigit() }
-        
+    private func getAdjustedDigits(board: RenderedBoard, from digits: Set<Point>) -> [Point: Int] {
         var result: [Point: Int] = [:]
+        
         for digit in digits {
-            let cell = board.get(digit)
             var adjusted: Int
-            switch cell {
-            case .digit(let n):
+            if case .digit(let n) = board.get(digit) {
                 adjusted = n
-            default:
+            } else {
                 fatalError()
             }
-            
-            let adjacentFlags = Set(util.adjacent(to: digit)).intersection(flagged)
+
+            let adjacentFlags = util.adjacent(to: digit).filter { board.get($0) == .flagged }
             adjusted -= adjacentFlags.count
-            
+
             result[digit] = adjusted
         }
-        
+
         return result
     }
-    
+
     private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
         var merged = pseudoIslands
         

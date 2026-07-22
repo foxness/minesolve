@@ -11,7 +11,7 @@ struct PatternFinder {
     
     let util: Util
     
-    var patterns: [String: [[PatternCell]]] {
+    let patterns: [String: [[PatternCell]]] = {
         var patterns: [String: [[PatternCell]]] = [:]
         
         patterns["Gate"] = [
@@ -141,17 +141,17 @@ struct PatternFinder {
         ]
         
         return patterns
-    }
+    }()
     
     // MARK: - Methods
     
-    func findPatterns(in board: RenderedBoard) -> SolveResult {
+    func findPatterns(in board: RenderedBoard, adjustedDigits: [Point: Int]) -> SolveResult {
         var pointsToFlag: Set<Point> = []
         var pointsToReveal: Set<Point> = []
 
         for (name, cells) in patterns {
             let pattern = Pattern(cells: cells)
-            let (findCount, solveResult) = find(pattern: pattern, in: board)
+            let (findCount, solveResult) = find(pattern: pattern, in: board, adjustedDigits: adjustedDigits)
 
             if findCount > 0 {
                 print("Found \(findCount) \(name) patterns")
@@ -165,10 +165,7 @@ struct PatternFinder {
     
     // MARK: - Private methods
     
-    func find(pattern: Pattern, in board: RenderedBoard) -> (Int, SolveResult) {
-        let flagged = Set(board.allPoints.filter { board.get($0) == .flagged })
-        let adjusted = adjustedDigits(board: board, flagged: flagged)
-        
+    func find(pattern: Pattern, in board: RenderedBoard, adjustedDigits: [Point: Int]) -> (Int, SolveResult) {
         var foundPoints: Set<Point> = []
         var pointsToFlag: Set<Point> = []
         var pointsToReveal: Set<Point> = []
@@ -206,7 +203,7 @@ struct PatternFinder {
                     let (isMatchingCell, isSafeCell, isMineCell) = match(
                         boardCell: boardCell,
                         patternCell: patternCell,
-                        adjusted: adjusted[boardPoint]
+                        adjusted: adjustedDigits[boardPoint]
                     )
                     
                     if !isMatchingCell {
@@ -276,28 +273,6 @@ struct PatternFinder {
         return (isMatch, isSafe, isMine)
     }
     
-    private func adjustedDigits(board: RenderedBoard, flagged: Set<Point>) -> [Point: Int] {
-        let digits = board.allPoints.filter { board.get($0).isDigit() }
-        
-        var result: [Point: Int] = [:]
-        for digit in digits {
-            let cell = board.get(digit)
-            var adjusted: Int
-            switch cell {
-            case .digit(let n):
-                adjusted = n
-            default:
-                fatalError()
-            }
-            
-            let adjacentFlags = Set(util.adjacent(to: digit)).intersection(flagged)
-            adjusted -= adjacentFlags.count
-            
-            result[digit] = adjusted
-        }
-        
-        return result
-    }
 }
 
 enum PatternCell: Hashable {
