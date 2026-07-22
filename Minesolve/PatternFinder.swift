@@ -15,33 +15,61 @@ struct PatternFinder {
         var patterns: [String: [[PatternCell]]] = [:]
         
         patterns["Gate"] = [
-            [.certain, .certain, .certain],
-            [.certain, .digit(1), .certain],
-            [.uncertain, .digit(1), .uncertain],
             [.safe, .safe, .safe],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .digit(1), .certain],
+            [.certain, .certain, .certain],
         ]
         
         patterns["Antigate"] = [ // exceptionally rare
-            [.certain, .certain, .certain],
-            [.certain, .digit(1), .certain],
-            [.uncertain, .digit(4), .uncertain],
             [.mine, .mine, .mine],
-        ]
-
-        patterns["Exit"] = [
-            [.certain, .certain, .certain],
-            [.uncertain, .digit(1), .uncertain],
+            [.uncertain, .digit(4), .uncertain],
             [.certain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["Exit"] = [
             [.safe, .safe, .safe],
+            [.certain, .digit(1), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
         ]
         
         patterns["Antiexit"] = [
-            [.certain, .certain, .certain],
-            [.uncertain, .digit(1), .uncertain],
-            [.certain, .digit(4), .certain],
             [.mine, .mine, .mine],
+            [.certain, .digit(4), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
         ]
-
+        
+        patterns["!!!!!!AntiexitVariant2!!!!!!!"] = [
+            [.mine, .mine, .certain],
+            [.certain, .digit(3), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["!!!!!!AntiexitVariant3!!!!!!!"] = [
+            [.mine, .certain, .certain],
+            [.certain, .digit(2), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["!!!!!!AntiexitVariant4!!!!!!!"] = [
+            [.mine, .certain, .mine],
+            [.certain, .digit(3), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["!!!!!!AntiexitVariant5!!!!!!!"] = [
+            [.certain, .mine, .certain],
+            [.certain, .digit(2), .certain],
+            [.uncertain, .digit(1), .uncertain],
+            [.certain, .certain, .certain],
+        ]
+        
         patterns["Arrow"] = [
             [.safe, .uncertain, .uncertain, .certain],
             [.uncertain, .digit(2), .digit(1), .certain],
@@ -90,7 +118,28 @@ struct PatternFinder {
             [.uncertain, .digit(1), .certain],
             [.certain, .certain, .certain],
         ]
+        
+        patterns["Outpunch"] = [
+            [.mine, .mine, .certain],
+            [.uncertain, .digit(3), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
 
+        patterns["Cranepunch"] = [
+            [.mine, .certain, .mine],
+            [.uncertain, .digit(3), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
+        patterns["!!!!!! PunchVariant4 !!!!!!"] = [
+            [.certain, .mine, .mine],
+            [.uncertain, .digit(3), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
+        ]
+        
         return patterns
     }
     
