@@ -49,7 +49,7 @@ struct PatternFinder {
             [.certain, .certain, .certain],
         ]
         
-        patterns["!!!!!!AntiexitVariant3!!!!!!!"] = [
+        patterns["Antiexit3"] = [
             [.mine, .certain, .certain],
             [.certain, .digit(2), .certain],
             [.uncertain, .digit(1), .uncertain],
@@ -63,7 +63,7 @@ struct PatternFinder {
             [.certain, .certain, .certain],
         ]
         
-        patterns["!!!!!!AntiexitVariant5!!!!!!!"] = [
+        patterns["Antiexit5"] = [
             [.certain, .mine, .certain],
             [.certain, .digit(2), .certain],
             [.uncertain, .digit(1), .uncertain],

@@ -250,15 +250,20 @@ struct Solver {
 
         let pointsToReveal: Set<Point>
         if safePoints.isEmpty {
-            let riskyPoint = sortedProbabilities.first!
+            let lowestProbability = sortedProbabilities.first!.1
+            let riskyPoints = sortedProbabilities.filter { $1 == lowestProbability }.map(\.0)
+            let riskyPoint = riskyPoints.randomElement()!
             
-            var riskyString = "Chose a risky one: \(riskyPoint.0) with probability \(String(format: "%.5f", riskyPoint.1))"
-            if darkIsland.contains(riskyPoint.0) {
+            let lowProbString = String(format: "%.5f", lowestProbability)
+            var riskyString = "Found \(riskyPoints.count) equally risky cells with probability \(lowProbString)"
+            riskyString += " and randomly chose \(riskyPoint)"
+            
+            if darkIsland.contains(riskyPoint) {
                 riskyString += " (from a dark island)"
             }
             
             print(riskyString)
-            pointsToReveal = [riskyPoint.0]
+            pointsToReveal = [riskyPoint]
         } else {
             pointsToReveal = safePoints
         }
