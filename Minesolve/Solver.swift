@@ -153,9 +153,12 @@ struct Solver {
             currentSetsOfSolutions: currentSetsOfSolutions
         )
         
+        let preFlagged = Set(board.allPoints.filter { board.get($0) == .flagged })
+
         return formSolution(
             currentSetsOfSolutions,
             toFlag: flagged,
+            preFlagged: preFlagged,
             darkIsland: darkIsland,
             minDarkIslandMines: minDarkIslandMines,
             maxDarkIslandMines: maxDarkIslandMines
@@ -197,6 +200,7 @@ struct Solver {
     private func formSolution(
         _ setOfIslandSolutions: [[[Point: Bool]]],
         toFlag: Set<Point>,
+        preFlagged: Set<Point>,
         darkIsland: Set<Point>,
         minDarkIslandMines: Int,
         maxDarkIslandMines: Int
@@ -266,6 +270,8 @@ struct Solver {
         if minDarkIslandMines != maxDarkIslandMines {
             pointsToFlag.subtract(darkIsland)
         }
+        
+        pointsToFlag.subtract(preFlagged)
 
         print("Flagging \(pointsToFlag.count), revealing: \(pointsToReveal.count)")
         print("Revealing: \(pointsToReveal)")
