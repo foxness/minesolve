@@ -37,6 +37,7 @@ struct Solver {
     
     private var boardFlagged: Set<Point> = []
     private var boardDigits: [Point: Int] = [:]
+    private var boardUnrevealed: Set<Point> = []
 
     // MARK: - Init
     
@@ -93,7 +94,7 @@ struct Solver {
             flagged.formUnion(boardFlagged)
         }
         
-        return solveIslands(board: board, flagged: flagged)
+        return solveIslands(board: board)
     }
 
     func primitiveSolveStep(board: RenderedBoard) -> SolveResult {
@@ -105,46 +106,44 @@ struct Solver {
     
     // MARK: - Private methods
     
-    private mutating func solveIslands(board: RenderedBoard, flagged: Set<Point>) -> SolveResult {
-        let unrevealed = Set(board.allPoints.filter { board.get($0).isUnrevealed() })
-        let uncertain = unrevealed.subtracting(flagged)
+    private mutating func solveIslands(board: RenderedBoard) -> SolveResult {
+        boardUnrevealed = Set(board.allPoints.filter { board.get($0) == .unrevealed })
         
-        let digits = Set(board.allPoints.filter { board.get($0).isDigit() })
-        let lightDigits = digits.filter { digit in
-            let neighbors = Set(util.adjacent(to: digit))
-            let isTouchingUncertain = !neighbors.intersection(uncertain).isEmpty
-            return isTouchingUncertain
-        }
+        let lightDigits = Set(boardDigits.keys.filter { digit in
+            let neighbors = util.adjacent(to: digit)
+            let isTouchingUnrevealed = neighbors.contains { board.get($0) == .unrevealed }
+            return isTouchingUnrevealed
+        })
         
         let pseudoIslands = divideLightDigitIslands(board: board, lightDigits: lightDigits)
-        let digitIslands = mergeIntoTrueIslands(pseudoIslands: pseudoIslands, uncertain: uncertain)
+        let digitIslands = mergeIntoTrueIslands(pseudoIslands: pseudoIslands, board: board)
         print("Islands: \(digitIslands.count)")
         
-        let uncertainIslands = digitIslands
-            .map { convertToUncertainIsland(digitIsland: $0, uncertain: uncertain) }
-            .sorted { $0.count < $1.count }
-        
+        let islands = digitIslands
+            .map { digits in
+                let uncertain = Set(digits.flatMap { util.adjacent(to: $0) }).filter { board.get($0) == .unrevealed }
+                return Island(uncertain: uncertain, digits: digits)
+            }
+            .sorted { $0.uncertain.count < $1.uncertain.count }
+
         var currentSetsOfSolutions: [[[Point: Bool]]] = []
         var islandsToKeep: Set<Island> = []
         
-        for island in uncertainIslands {
-            let islandDigits = Set(island.flatMap { util.adjacent(to: $0) }).intersection(digits)
-            let definition = Island(uncertain: island, digits: islandDigits)
-            
-            if let setOfSolutions = setsOfIslandSolutions[definition] {
-                islandsToKeep.insert(definition)
+        for island in islands {
+            if let setOfSolutions = setsOfIslandSolutions[island] {
+                islandsToKeep.insert(island)
                 
-                print("Found an already solved island of \(island.count)")
+                print("Found an already solved island of \(island.uncertain.count)")
                 currentSetsOfSolutions.append(setOfSolutions)
                 continue
             }
             
-            print("Solving island of \(island.count)")
+            print("Solving island of \(island.uncertain.count)")
             let setOfSolutions = solveIsland(island, board: board)
             print("Solutions: \(setOfSolutions.count)")
             
-            setsOfIslandSolutions[definition] = setOfSolutions
-            islandsToKeep.insert(definition)
+            setsOfIslandSolutions[island] = setOfSolutions
+            islandsToKeep.insert(island)
             
             currentSetsOfSolutions.append(setOfSolutions)
         }
@@ -152,34 +151,19 @@ struct Solver {
         print("Forgetting solutions of \(setsOfIslandSolutions.keys.count - islandsToKeep.count) islands")
         setsOfIslandSolutions = setsOfIslandSolutions.filter { key, value in islandsToKeep.contains(key) }
         
-        let (darkIsland, minDarkIslandMines, maxDarkIslandMines) = solveDarkIsland(
-            board: board,
-            flagged: flagged,
-            uncertain: uncertain,
-            currentSetsOfSolutions: currentSetsOfSolutions
-        )
+        let (darkIsland, minDarkIslandMines, maxDarkIslandMines) = solveDarkIsland(board: board, currentSetsOfSolutions: currentSetsOfSolutions)
         
-        let preFlagged = Set(board.allPoints.filter { board.get($0) == .flagged })
-
         return formSolution(
             currentSetsOfSolutions,
-            toFlag: flagged,
-            preFlagged: preFlagged,
             darkIsland: darkIsland,
             minDarkIslandMines: minDarkIslandMines,
             maxDarkIslandMines: maxDarkIslandMines
         )
     }
     
-    private func solveDarkIsland(
-        board: RenderedBoard,
-        flagged: Set<Point>,
-        uncertain: Set<Point>,
-        currentSetsOfSolutions: [[[Point: Bool]]]
-    ) -> (Set<Point>, Int, Int) {
-        
+    private func solveDarkIsland(board: RenderedBoard, currentSetsOfSolutions: [[[Point: Bool]]]) -> (Set<Point>, Int, Int) {
         var darkIsland: Set<Point> = [] // points that dont touch a digit
-        for point in uncertain {
+        for point in boardUnrevealed {
             let neighbors = util.adjacent(to: point)
             let isTouchingDigit = neighbors.contains { board.get($0).isDigit() }
             
@@ -197,16 +181,14 @@ struct Solver {
             maxTotalMines += mineCounts.max()!
         }
         
-        let minDarkIslandMines = max(0, board.mines - (flagged.count + maxTotalMines))
-        let maxDarkIslandMines = min(darkIsland.count, board.mines - (flagged.count + minTotalMines))
+        let minDarkIslandMines = max(0, board.mines - (boardFlagged.count + maxTotalMines))
+        let maxDarkIslandMines = min(darkIsland.count, board.mines - (boardFlagged.count + minTotalMines))
         
         return (darkIsland, minDarkIslandMines, maxDarkIslandMines)
     }
     
     private func formSolution(
         _ setOfIslandSolutions: [[[Point: Bool]]],
-        toFlag: Set<Point>,
-        preFlagged: Set<Point>,
         darkIsland: Set<Point>,
         minDarkIslandMines: Int,
         maxDarkIslandMines: Int
@@ -276,31 +258,24 @@ struct Solver {
         }
         
         var pointsToFlag = Set(sortedProbabilities.filter { (key, value) in value == 1 }.map(\.0))
-            .union(toFlag)
         
         if minDarkIslandMines != maxDarkIslandMines {
             pointsToFlag.subtract(darkIsland)
         }
         
-        pointsToFlag.subtract(preFlagged)
-
         print("Flagging \(pointsToFlag.count), revealing: \(pointsToReveal.count)")
         print("Revealing: \(pointsToReveal)")
         return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
     }
     
-    private func solveIsland(_ island: Set<Point>, board: RenderedBoard) -> [[Point: Bool]] {
+    private func solveIsland(_ island: Island, board: RenderedBoard) -> [[Point: Bool]] {
         var setOfSolutions: [[Point: Bool]] = []
         
         let minesLeft = board.mines - boardFlagged.count
-        let islandDigits = Set(island.flatMap { util.adjacent(to: $0) })
-            .subtracting(island)
-            .filter { board.get($0).isDigit() }
-        
-        let adjustedDigits = getAdjustedDigits(board: board, from: islandDigits)
+        let adjustedDigits = getAdjustedDigits(board: board, from: island.digits)
 
         var current: [Point: Bool?] = [:] // [coord: isMine?]
-        island.forEach { current.updateValue(nil, forKey: $0) }
+        island.uncertain.forEach { current.updateValue(nil, forKey: $0) }
         
         depthSolveIsland(
             current: current,
@@ -402,11 +377,11 @@ struct Solver {
         return result
     }
 
-    private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
+    private func mergeIntoTrueIslands(pseudoIslands: [Set<Point>], board: RenderedBoard) -> [Set<Point>] {
         var merged = pseudoIslands
         
         while true {
-            let newMerged = mergeIntoTrueIslandsStep(pseudoIslands: merged, uncertain: uncertain)
+            let newMerged = mergeIntoTrueIslandsStep(pseudoIslands: merged, board: board)
             if newMerged.count == merged.count {
                 break
             }
@@ -417,32 +392,36 @@ struct Solver {
         return merged
     }
 
-    private func mergeIntoTrueIslandsStep(pseudoIslands: [Set<Point>], uncertain: Set<Point>) -> [Set<Point>] {
+    private func mergeIntoTrueIslandsStep(pseudoIslands: [Set<Point>], board: RenderedBoard) -> [Set<Point>] {
         guard pseudoIslands.count > 1 else { return pseudoIslands }
+        // preudo islands and true islands are digits
         
         var trueIslands: [Set<Point>] = []
         
-        var islandsWithUncertain: [(Set<Point>, Set<Point>)] = []
-        for island in pseudoIslands {
-            let uncertainOfIsland = convertToUncertainIsland(digitIsland: island, uncertain: uncertain)
-            islandsWithUncertain.append((island, uncertainOfIsland))
+        var islands: [Island] = []
+        for digitIsland in pseudoIslands {
+            let uncertainIsland = Set(digitIsland.flatMap { util.adjacent(to: $0) }).filter { board.get($0) == .unrevealed }
+            islands.append(Island(uncertain: uncertainIsland, digits: digitIsland))
         }
         
-        while !islandsWithUncertain.isEmpty {
-            let (island, uncertainOfIsland) = islandsWithUncertain.removeFirst()
+        while !islands.isEmpty {
+            let firstIsland = islands.removeFirst()
+            let (digitIsland, uncertainIsland) = (firstIsland.digits, firstIsland.uncertain)
             
-            var toMerge: [Set<Point>] = []
-            for (otherIsland, otherUncertainOfIsland) in islandsWithUncertain {
-                let shouldMerge = !uncertainOfIsland.intersection(otherUncertainOfIsland).isEmpty
+            var digitIslandsToMerge: [Set<Point>] = []
+            for otherIsland in islands {
+                let (otherDigitIsland, otherUncertainIsland) = (otherIsland.digits, otherIsland.uncertain)
+                
+                let shouldMerge = !uncertainIsland.intersection(otherUncertainIsland).isEmpty
                 if shouldMerge {
-                    toMerge.append(otherIsland)
+                    digitIslandsToMerge.append(otherDigitIsland)
                 }
             }
             
-            islandsWithUncertain.removeAll { (island_, uncertain_) in toMerge.contains(island_) }
+            islands.removeAll { island in digitIslandsToMerge.contains(island.digits) }
             
-            var trueIsland = island
-            for islandToMerge in toMerge {
+            var trueIsland = digitIsland
+            for islandToMerge in digitIslandsToMerge {
                 trueIsland.formUnion(islandToMerge)
             }
             
