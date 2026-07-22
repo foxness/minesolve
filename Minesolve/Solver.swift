@@ -28,12 +28,15 @@ struct Solver {
     // assume all placed flags are correct
     let assumeNoHuman = true
     
-    var setsOfIslandSolutions: [Island: [[Point: Bool]]] = [:]
-    
     // MARK: - Private properties
     
     private let util: Util
     private let patternFinder: PatternFinder
+    
+    private var setsOfIslandSolutions: [Island: [[Point: Bool]]] = [:]
+    
+    private var boardFlagged: Set<Point> = []
+    private var boardDigits: [Point: Int] = [:]
 
     // MARK: - Init
     
@@ -52,13 +55,15 @@ struct Solver {
     }
     
     mutating func solve(board: RenderedBoard) -> SolveResult {
+        boardFlagged = Set(board.allPoints.filter { board.get($0) == .flagged })
+        boardDigits = Solver.getBoardDigits(in: board)
+
         let primitiveSolve = primitiveSolveStep(board: board)
         
         let primitiveFlagged = primitiveSolve.pointsToFlag
         let primitiveRevealed = primitiveSolve.pointsToReveal
         
-        let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
-        let newFlags = primitiveFlagged.subtracting(preFlagged)
+        let newFlags = primitiveFlagged.subtracting(boardFlagged)
         
         guard primitiveRevealed.isEmpty && newFlags.isEmpty else {
             print("Primitive solution found (flags: \(newFlags.count), reveals: \(primitiveRevealed.count))")
@@ -83,17 +88,17 @@ struct Solver {
         
         var flagged = primitiveFlagged
         if assumeNoHuman {
-            flagged.formUnion(preFlagged)
+            flagged.formUnion(boardFlagged)
         }
         
         return solveIslands(board: board, flagged: flagged)
     }
 
     func primitiveSolveStep(board: RenderedBoard) -> SolveResult {
-        let pointsToFlag = primitiveFlag(board: board)
-        let pointsToReveal = primitiveReveal(board: board, pointsToFlag: pointsToFlag)
+        let primitiveFlagged = primitiveFlag(board: board)
+        let primitiveRevealed = primitiveReveal(board: board, primitiveFlagged: primitiveFlagged)
         
-        return SolveResult(pointsToReveal: pointsToReveal, pointsToFlag: pointsToFlag)
+        return SolveResult(pointsToReveal: primitiveRevealed, pointsToFlag: primitiveFlagged)
     }
     
     // MARK: - Private methods
@@ -475,54 +480,56 @@ struct Solver {
     }
 
     private func primitiveFlag(board: RenderedBoard) -> Set<Point> {
-        var pointsToFlag: Set<Point> = []
+        var primitiveFlagged: Set<Point> = []
         
-        for point in board.allPoints {
-            if case .digit(let n) = board.get(point) {
-                let neighbors = util.adjacent(to: point)
-                let unrevealedNeighbors = Set(neighbors.filter { board.get($0).isUnrevealed() })
-                
-                if unrevealedNeighbors.count == n {
-                    pointsToFlag.formUnion(unrevealedNeighbors)
-                }
+        for (point, n) in boardDigits {
+            let neighbors = util.adjacent(to: point)
+            let unrevealedNeighbors = Set(neighbors.filter { board.get($0).isUnrevealed() })
+            
+            if unrevealedNeighbors.count == n {
+                primitiveFlagged.formUnion(unrevealedNeighbors)
             }
         }
-
-        return pointsToFlag
+        
+        return primitiveFlagged
     }
     
-    private func primitiveReveal(board: RenderedBoard, pointsToFlag: Set<Point>) -> Set<Point> {
-        var pointsToReveal: Set<Point> = []
-        var digitsToReveal: Set<Point> = []
+    private func primitiveReveal(board: RenderedBoard, primitiveFlagged: Set<Point>) -> Set<Point> {
+        var primitiveRevealed: Set<Point> = []
         
-        var flagged = pointsToFlag
+        var flagged = primitiveFlagged
         if assumeNoHuman {
-            let preFlagged = board.allPoints.filter { board.get($0) == .flagged }
-            flagged.formUnion(preFlagged)
+            flagged.formUnion(boardFlagged)
         }
         
+        var digitsToReveal: Set<Point> = []
         for point in flagged {
             let digitNeighbors = util.adjacent(to: point).filter { board.get($0).isDigit() }
             digitsToReveal.formUnion(digitNeighbors)
         }
         
-        for point in digitsToReveal {
-            let neighbors = Set(util.adjacent(to: point))
-            let intersection = neighbors.intersection(pointsToFlag)
+        for digitPoint in digitsToReveal {
+            let neighbors = Set(util.adjacent(to: digitPoint))
+            let flaggedNeighbors = neighbors.intersection(flagged)
             
-            if case let .digit(n) = board.get(point), intersection.count == n {
-                let unrevealedNeighbors = neighbors.filter { board.get($0).isUnrevealed() }
-                let toReveal = unrevealedNeighbors.subtracting(pointsToFlag)
-                
-                pointsToReveal.formUnion(toReveal)
+            if case let .digit(n) = board.get(digitPoint), flaggedNeighbors.count == n {
+                let unrevealedNeighbors = neighbors.filter { board.get($0) == .unrevealed }
+                primitiveRevealed.formUnion(unrevealedNeighbors)
             }
         }
         
-        return pointsToReveal
+        return primitiveRevealed
     }
     
     private func convertToUncertainIsland(digitIsland: Set<Point>, uncertain: Set<Point>) -> Set<Point> {
         Set(digitIsland.flatMap { util.adjacent(to: $0) }).intersection(uncertain)
+    }
+    
+    private static func getBoardDigits(in board: RenderedBoard) -> [Point: Int] {
+        Dictionary(uniqueKeysWithValues: board.allPoints.compactMap { point in
+            guard case let .digit(n) = board.get(point) else { return nil }
+            return (point, n)
+        })
     }
 }
 
