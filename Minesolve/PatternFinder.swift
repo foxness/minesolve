@@ -85,17 +85,17 @@ struct PatternFinder {
         ]
         
         patterns["Outlet"] = [
-            [.certain, .certain, .certain],
-            [.uncertain, .digit(1), .certain],
-            [.uncertain, .digit(1), .certain],
             [.safe, .safe, .safe],
+            [.uncertain, .digit(1), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
         ]
         
         patterns["Antioutlet"] = [
-            [.certain, .certain, .certain],
-            [.uncertain, .digit(1), .certain],
-            [.uncertain, .digit(4), .certain],
             [.mine, .mine, .mine],
+            [.uncertain, .digit(4), .certain],
+            [.uncertain, .digit(1), .certain],
+            [.certain, .certain, .certain],
         ]
         
         patterns["Punch"] = [
@@ -184,13 +184,6 @@ struct PatternFinder {
             }
             
             for point in pointsToCheck {
-//                let rightX = point.x + permutation.width - 1
-//                let bottomY = point.y + permutation.height - 1
-//                
-//                guard rightX < board.width, bottomY < board.height else {
-//                    continue
-//                }
-                
                 var isMatch = true
                 var safePoints: Set<Point> = []
                 var minePoints: Set<Point> = []
@@ -272,7 +265,6 @@ struct PatternFinder {
         
         return (isMatch, isSafe, isMine)
     }
-    
 }
 
 enum PatternCell: Hashable {
