@@ -132,9 +132,15 @@ struct Solver {
         for island in islands {
             if let setOfSolutions = setsOfIslandSolutions[island] {
                 islandsToKeep.insert(island)
-                
                 print("Found an already solved island of \(island.uncertain.count)")
-                currentSetsOfSolutions.append(setOfSolutions)
+                
+                let pruned = pruneForNewMinesLeft(setOfSolutions: setOfSolutions, board: board)
+                if pruned.count < setOfSolutions.count {
+                    print("Island has pruned from \(setOfSolutions.count) to \(pruned.count)")
+                }
+                
+                setsOfIslandSolutions[island] = pruned
+                currentSetsOfSolutions.append(pruned)
                 continue
             }
             
@@ -159,6 +165,14 @@ struct Solver {
             minDarkIslandMines: minDarkIslandMines,
             maxDarkIslandMines: maxDarkIslandMines
         )
+    }
+    
+    private func pruneForNewMinesLeft(setOfSolutions: [[Point: Bool]], board: RenderedBoard) -> [[Point: Bool]] {
+        let minesLeft = board.mines - boardFlagged.count
+        return setOfSolutions.filter { solution in
+            let mineCount = solution.values.count { $0 }
+            return mineCount <= minesLeft
+        }
     }
     
     private func solveDarkIsland(board: RenderedBoard, currentSetsOfSolutions: [[[Point: Bool]]]) -> (Set<Point>, Int, Int) {
